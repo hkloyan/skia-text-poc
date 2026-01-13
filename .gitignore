@@ -1,1 +1,38 @@
+# Build outputs
+platform/web/dist/
+*.o
+
+# Skia build outputs (built from source)
+third_party/skia/out/
+
+# Pre-built libraries (optional - can be rebuilt)
+# Uncomment if you want to rebuild in CI instead of committing
+# third_party/skia-libs/
+
+# macOS
 .DS_Store
+*.xcuserstate
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+*.xcodeproj/project.xcworkspace/xcshareddata/
+
+# Xcode build
+DerivedData/
+build/
+
+# IDE
+.idea/
+*.swp
+*.swo
+*~
+
+# Node
+node_modules/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Emscripten cache (generated during build)
+third_party/skia/third_party/externals/emsdk/upstream/emscripten/cache/symbol_lists/

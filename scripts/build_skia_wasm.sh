@@ -10,8 +10,8 @@ echo "Building Skia for WASM..."
 # Source emsdk environment
 source "$HOME/repos/tools/emsdk/emsdk_env.sh"
 
-# Ensure depot_tools is in PATH
-export PATH="$HOME/repos/tools/depot_tools:$PATH"
+# Ensure depot_tools is in PATH (after homebrew so system ninja is used)
+export PATH="/opt/homebrew/bin:$HOME/repos/tools/depot_tools:$PATH"
 
 cd "$SKIA_DIR"
 
@@ -19,8 +19,8 @@ cd "$SKIA_DIR"
 GN_ARGS=$(cat "$PROJECT_ROOT/gn_args/wasm.gn" | tr '\n' ' ')
 bin/gn gen out/wasm --args="$GN_ARGS"
 
-# Build required targets
-ninja -C out/wasm libskia.a libskparagraph.a libskshaper.a libskunicode_core.a libskunicode_icu.a
+# Build required targets using system ninja
+/opt/homebrew/bin/ninja -C out/wasm libskia.a libskparagraph.a libskshaper.a libskunicode_core.a libskunicode_icu.a
 
 # Copy outputs to skia-libs
 mkdir -p "$PROJECT_ROOT/third_party/skia-libs/wasm"

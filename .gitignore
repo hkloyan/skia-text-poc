@@ -13,6 +13,9 @@ third_party/skia/out/
 # Uncomment if you want to rebuild in CI instead of committing
 # third_party/skia-libs/
 
+# Generated Xcode project (regenerate with: cd demos/ios && xcodegen generate)
+demos/ios/SkiaTextPoc.xcodeproj/
+
 # macOS
 .DS_Store
 *.xcuserstate

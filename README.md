@@ -113,7 +113,7 @@ python3 -m http.server 8080
 ### Generate and Open Project
 ```bash
 cd demos/ios
-xcodegen generate # optional
+xcodegen generate
 open SkiaTextPoc.xcodeproj
 ```
 

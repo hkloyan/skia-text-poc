@@ -2,6 +2,10 @@
 
 A proof-of-concept for cross-platform text rendering using Skia's SkParagraph (C++), targeting both Web (WASM) and iOS with Metal.
 
+## Live Demo
+
+Try the web demo without building: **[hkloyan.github.io/skia-text-poc](https://hkloyan.github.io/skia-text-poc/)**
+
 ## Features
 
 - Rich text with multiple fonts, sizes, and colors
@@ -101,12 +105,15 @@ Pre-built Skia libraries are included in `third_party/skia-libs/`. You only need
 ./scripts/build_wasm.sh
 ```
 
-### Run
+### Run Locally
 ```bash
 # From project root
 python3 -m http.server 8080
 # Open http://localhost:8080/demos/web/ in browser
 ```
+
+### Deploy to GitHub Pages
+The `deployment` branch is used for GitHub Pages. Pushing to `deployment` triggers a GitHub Action that deploys to Pages.
 
 ## iOS Platform
 

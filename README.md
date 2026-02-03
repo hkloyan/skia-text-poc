@@ -185,3 +185,9 @@ Both demos render identical rich text with interactive editing. Compare:
 - Skia commit is pinned in `SKIA_VERSION` for reproducibility
 - Pre-built libraries are stored in `third_party/skia-libs/`
 - The WASM build uses Skia's bundled emsdk for ABI compatibility
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+For third-party licenses (Skia, fonts, etc.), see [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md).

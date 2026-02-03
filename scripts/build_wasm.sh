@@ -23,7 +23,7 @@ mkdir -p platform/web/dist
 
 em++ \
   -std=c++17 \
-  -O2 \
+  -Os \
   -fno-exceptions \
   -fno-rtti \
   -DEMSCRIPTEN_HAS_UNBOUND_TYPE_NAMES=0 \
@@ -57,7 +57,6 @@ em++ \
   -sEXPORT_NAME="SkiaTextModule" \
   -sDISABLE_EXCEPTION_CATCHING=1 \
   -sEXPORTED_FUNCTIONS="['_malloc','_free']" \
-  -sEXPORTED_RUNTIME_METHODS="['HEAPU8']" \
   -o platform/web/dist/skia_text.js
 
 echo "Build complete: platform/web/dist/skia_text.js"

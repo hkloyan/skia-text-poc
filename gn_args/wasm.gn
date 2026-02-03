@@ -1,6 +1,8 @@
 is_official_build=true
 is_debug=false
 target_cpu="wasm"
+extra_cflags=["-Os"]
+extra_cflags_cc=["-Os"]
 skia_use_harfbuzz=true
 skia_use_system_harfbuzz=false
 skia_use_icu=true

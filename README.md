@@ -25,7 +25,7 @@ A proof-of-concept for cross-platform text rendering using Skia's SkParagraph (C
       /dist                 # Built WASM module
     /ios                    # iOS platform
       /SkiaTextPoc
-        SkiaRenderer.mm/h   # ObjC++ bridge
+        SkiaRenderer.mm/hh   # ObjC++ bridge
         SkiaMetalView.swift
         ViewController.swift
         ...

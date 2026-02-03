@@ -76,15 +76,20 @@ cd skia-text-poc
 git submodule update --init --recursive
 ```
 
-### 2. Sync and Build Skia (optional)
+### 2. Sync Skia Dependencies
 
-Pre-built Skia libraries are included in `third_party/skia-libs/`. You only need to rebuild if you want to update Skia or modify build options.
+This syncs Skia's third-party dependencies (includes the bundled Emscripten SDK needed for WASM builds):
 
 ```bash
-# Sync Skia dependencies
 ./scripts/sync_skia_deps.sh
+```
 
-# Build Skia libraries (~30-60 mins per platform)
+### 3. Build Skia Libraries (optional)
+
+Pre-built Skia libraries are included in `third_party/skia-libs/`. You only need to rebuild if you want to update Skia or modify build options:
+
+```bash
+# ~30-60 mins per platform
 ./scripts/build_skia_wasm.sh  # For WASM
 ./scripts/build_skia_ios.sh   # For iOS
 ```

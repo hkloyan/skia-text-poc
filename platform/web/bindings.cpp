@@ -82,7 +82,7 @@ bool initSkia(int width, int height) {
     
     webglContext = emscripten_webgl_create_context("#canvas", &attrs);
     if (webglContext <= 0) {
-        printf("Failed to create WebGL2 context, error: %d\n", webglContext);
+        printf("Failed to create WebGL2 context, error: %ld\n", (long)webglContext);
         return false;
     }
     

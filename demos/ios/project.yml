@@ -1,0 +1,82 @@
+name: SkiaTextPoc
+options:
+  bundleIdPrefix: com.skia.textpoc
+  deploymentTarget:
+    iOS: "14.0"
+  xcodeVersion: "15.0"
+  generateEmptyDirectories: true
+
+settings:
+  base:
+    CLANG_CXX_LANGUAGE_STANDARD: c++17
+    CLANG_CXX_LIBRARY: libc++
+    SWIFT_OBJC_BRIDGING_HEADER: $(SRCROOT)/SkiaTextPoc/SkiaTextPoc-Bridging-Header.h
+    HEADER_SEARCH_PATHS:
+      - $(SRCROOT)/../../third_party/skia
+      - $(SRCROOT)/../../third_party/skia/include
+      - $(SRCROOT)/../../third_party/skia/modules/skparagraph/include
+      - $(SRCROOT)/../../third_party/skia/modules/skunicode/include
+      - $(SRCROOT)/../../include
+      - $(SRCROOT)/../../platform/ios
+    OTHER_LDFLAGS:
+      - -lc++
+      - -lskia
+      - -lskparagraph
+      - -lskshaper
+      - -lskunicode_core
+      - -lskunicode_icu
+      - -lharfbuzz
+      - -licu
+      - -lfreetype2
+      - -lpng
+      - -lzlib
+    GCC_PREPROCESSOR_DEFINITIONS:
+      - SK_METAL=1
+      - SK_GANESH=1
+
+targets:
+  SkiaTextPoc:
+    type: application
+    platform: iOS
+    sources:
+      - path: SkiaTextPoc
+        excludes:
+          - "**/.DS_Store"
+      - path: ../../src
+        name: Core
+        type: group
+        buildPhase: sources
+      - path: ../../platform/ios/SkiaRenderer.mm
+        name: SkiaRenderer.mm
+        buildPhase: sources
+      - path: ../../assets/fonts/Roboto-Regular.ttf
+        buildPhase: resources
+      - path: ../../assets/fonts/Roboto-Bold.ttf
+        buildPhase: resources
+      - path: ../../assets/fonts/PlayfairDisplay-Regular.ttf
+        buildPhase: resources
+      - path: ../../assets/fonts/PlayfairDisplay-Italic.ttf
+        buildPhase: resources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.skia.textpoc
+        INFOPLIST_FILE: SkiaTextPoc/Info.plist
+        CODE_SIGN_STYLE: Automatic
+        TARGETED_DEVICE_FAMILY: "1,2"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        LIBRARY_SEARCH_PATHS:
+          - $(SRCROOT)/../../third_party/skia-libs/ios-arm64
+        ARCHS: arm64
+        ONLY_ACTIVE_ARCH: NO
+        EXCLUDED_ARCHS[sdk=iphonesimulator*]: arm64 x86_64
+    dependencies:
+      - sdk: Metal.framework
+      - sdk: MetalKit.framework
+      - sdk: QuartzCore.framework
+      - sdk: CoreGraphics.framework
+      - sdk: CoreText.framework
+      - sdk: Foundation.framework
+      - sdk: UIKit.framework
+    scheme:
+      testTargets: []
+      gatherCoverageData: false

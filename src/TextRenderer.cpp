@@ -1,5 +1,5 @@
-#include "TextRenderer.h"
-#include "FontManager.h"
+#include "core/TextRenderer.h"
+#include "core/FontManager.h"
 #include "modules/skparagraph/include/ParagraphBuilder.h"
 #include "modules/skparagraph/include/ParagraphStyle.h"
 #include "modules/skparagraph/include/TextStyle.h"
@@ -12,11 +12,13 @@
 
 using namespace skia::textlayout;
 
+namespace core {
+
 // === TextStyleBuilder implementation ===
 
 TextStyleBuilder::TextStyleBuilder() = default;
 
-TextStyleBuilder::TextStyleBuilder(const ::TextStyle& base)
+TextStyleBuilder::TextStyleBuilder(const TextStyle& base)
     : fontFamily_(base.fontFamily)
     , fontSize_(base.fontSize)
     , color_(base.color)
@@ -98,8 +100,8 @@ TextStyleBuilder& TextStyleBuilder::noShadow() {
     return *this;
 }
 
-::TextStyle TextStyleBuilder::build() const {
-    ::TextStyle style;
+TextStyle TextStyleBuilder::build() const {
+    TextStyle style;
     style.fontFamily = fontFamily_;
     style.fontSize = fontSize_;
     style.color = color_;
@@ -121,7 +123,7 @@ TextRenderer::TextRenderer() = default;
 TextRenderer::~TextRenderer() = default;
 
 // Helper to convert our TextStyle to Skia's TextStyle
-static skia::textlayout::TextStyle toSkiaStyle(const ::TextStyle& style, float lineHeight) {
+static skia::textlayout::TextStyle toSkiaStyle(const TextStyle& style, float lineHeight) {
     skia::textlayout::TextStyle skStyle;
     
 #if defined(__APPLE__)
@@ -197,7 +199,7 @@ static std::string toUtf8(const std::u16string& utf16) {
     return std::string(utf8.c_str(), utf8.size());
 }
 
-void TextRenderer::setText(const std::string& text, const ::TextStyle& style) {
+void TextRenderer::setText(const std::string& text, const TextStyle& style) {
     // Single style is just a rich text with one span
     setRichText({{text, style}});
 }
@@ -587,7 +589,7 @@ void TextRenderer::insertStyledText(const StyledSpan& span) {
     invalidateCursorCache();
 }
 
-void TextRenderer::applyStyleToSelection(const ::TextStyle& style) {
+void TextRenderer::applyStyleToSelection(const TextStyle& style) {
     if (!hasSelection()) return;
     
     auto [start, end] = getSelection();
@@ -621,7 +623,7 @@ void TextRenderer::applyStyleToSelection(const ::TextStyle& style) {
     needsRebuildParagraph_ = true;
 }
 
-::TextStyle TextRenderer::getStyleAtCursor() const {
+TextStyle TextRenderer::getStyleAtCursor() const {
     // When cursor is at a boundary, prefer the style to the left (the preceding character)
     // This matches typical text editor behavior where typing continues in the same style
     int position = selectionFocus_;
@@ -637,7 +639,7 @@ void TextRenderer::insertTextAt(const std::u16string& newText, int position) {
     int len = static_cast<int>(newText.length());
     
     // Get style for inserted text (inherit from position to the left)
-    ::TextStyle insertStyle = getStyleAtPosition(position > 0 ? position - 1 : position);
+    TextStyle insertStyle = getStyleAtPosition(position > 0 ? position - 1 : position);
     
     // Insert into plain text
     text_.insert(position, newText);
@@ -738,7 +740,7 @@ void TextRenderer::adjustStyleRunsForDelete(int start, int end) {
     styleRuns_ = std::move(newRuns);
 }
 
-::TextStyle TextRenderer::getStyleAtPosition(int position) const {
+TextStyle TextRenderer::getStyleAtPosition(int position) const {
     for (const auto& run : styleRuns_) {
         if (position >= run.start && position < run.end) {
             return run.style;
@@ -794,7 +796,7 @@ void TextRenderer::mergeAdjacentStyleRuns() {
             } else if (current.end <= last.end) {
                 // Current is entirely inside last - split last around current
                 int oldLastEnd = last.end;
-                ::TextStyle oldLastStyle = last.style;
+                TextStyle oldLastStyle = last.style;
                 
                 // Truncate the first part
                 last.end = current.start;
@@ -1470,3 +1472,5 @@ SkRect TextRenderer::getCursorRect() const {
     cachedCursorAffinity_ = cursorAffinityDownstream_;
     return *cachedCursorRect_;
 }
+
+} // namespace core

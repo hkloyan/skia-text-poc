@@ -19,7 +19,7 @@ fi
 cd "$PROJECT_ROOT"
 
 # Create output directory
-mkdir -p platform/web/dist
+mkdir -p demos/web/dist
 
 em++ \
   -std=c++17 \
@@ -27,15 +27,15 @@ em++ \
   -fno-exceptions \
   -fno-rtti \
   -DEMSCRIPTEN_HAS_UNBOUND_TYPE_NAMES=0 \
-  -I "$PROJECT_ROOT" \
+  -I "$PROJECT_ROOT/include" \
   -I "$SKIA_DIR" \
   -I "$SKIA_DIR/include" \
   -I "$SKIA_DIR/modules/skparagraph/include" \
   -I "$SKIA_DIR/modules/skunicode/include" \
   -DSK_GANESH \
   -DSK_GL \
-  core/TextRenderer.cpp \
-  core/FontManager.cpp \
+  src/TextRenderer.cpp \
+  src/FontManager.cpp \
   platform/web/bindings.cpp \
   "$SKIA_LIBS/libskparagraph.a" \
   "$SKIA_LIBS/libskshaper.a" \
@@ -57,6 +57,6 @@ em++ \
   -sEXPORT_NAME="SkiaTextModule" \
   -sDISABLE_EXCEPTION_CATCHING=1 \
   -sEXPORTED_FUNCTIONS="['_malloc','_free']" \
-  -o platform/web/dist/skia_text.js
+  -o demos/web/dist/skia_text.js
 
-echo "Build complete: platform/web/dist/skia_text.js"
+echo "Build complete: demos/web/dist/skia_text.js"

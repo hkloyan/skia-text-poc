@@ -7,6 +7,8 @@
 #include <string>
 #include <unordered_map>
 
+namespace core {
+
 class FontManager {
 public:
     static FontManager& instance();
@@ -36,3 +38,5 @@ private:
     sk_sp<skia::textlayout::FontCollection> fontCollection_;
     bool fontCollectionDirty_ = true;
 };
+
+} // namespace core

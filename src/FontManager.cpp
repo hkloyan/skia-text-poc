@@ -1,4 +1,4 @@
-#include "FontManager.h"
+#include "core/FontManager.h"
 #include "modules/skparagraph/include/TypefaceFontProvider.h"
 #include "include/core/SkFontMgr.h"
 #include "include/core/SkStream.h"
@@ -8,6 +8,8 @@
 #if defined(__APPLE__)
 #include "include/ports/SkFontMgr_mac_ct.h"
 #endif
+
+namespace core {
 
 FontManager& FontManager::instance() {
     static FontManager instance;
@@ -80,3 +82,5 @@ void FontManager::clear() {
     fontCollection_.reset();
     fontCollectionDirty_ = true;
 }
+
+} // namespace core

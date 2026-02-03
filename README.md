@@ -6,29 +6,27 @@ A proof-of-concept for cross-platform text rendering using Skia's SkParagraph (C
 
 ```
 /skia-text-poc
-  index.html                # Web demo entry point
-  /third_party
-    /skia                   # Git submodule (Google's Skia)
-    /skia-libs              # Pre-built Skia libraries
-      /wasm                 # WASM libraries
-      /ios-arm64            # iOS device libraries
-      /ios-x64-sim          # iOS simulator libraries
-  /assets
-    /fonts                  # Google Fonts TTFs (Roboto)
-  /core                     # Shared C++ rendering code
-    TextRenderer.cpp/h
-    FontManager.cpp/h
-  /platform
-    /web                    # Web platform (WASM)
+  /include/core             # Public C++ headers (namespace: core)
+    TextRenderer.h
+    FontManager.h
+  /src                      # C++ implementation
+    TextRenderer.cpp
+    FontManager.cpp
+  /platform                 # Platform-specific bindings
+    /web
       bindings.cpp          # Embind for JS interop
+    /ios
+      SkiaRenderer.mm/hh    # ObjC++ bridge
+  /demos                    # Demo applications
+    /web                    # Web demo
+      index.html
       main.js
       /dist                 # Built WASM module
-    /ios                    # iOS platform
-      /SkiaTextPoc
-        SkiaRenderer.mm/hh   # ObjC++ bridge
-        SkiaMetalView.swift
-        ViewController.swift
-        ...
+    /ios                    # iOS demo app
+      project.yml           # XcodeGen spec
+      /SkiaTextPoc          # Swift source files
+  /assets
+    /fonts                  # Google Fonts TTFs (Roboto, Playfair)
   /scripts
     sync_skia_deps.sh       # Sync Skia dependencies
     build_skia_wasm.sh      # Build Skia for WASM
@@ -38,6 +36,9 @@ A proof-of-concept for cross-platform text rendering using Skia's SkParagraph (C
     wasm.gn                 # GN args for WASM build
     ios_arm64.gn            # GN args for iOS device
     ios_x64_sim.gn          # GN args for iOS simulator
+  /third_party
+    /skia                   # Git submodule (Google's Skia)
+    /skia-libs              # Pre-built Skia libraries
   SKIA_VERSION              # Pinned Skia commit
 ```
 
@@ -89,7 +90,8 @@ git submodule update --init --recursive
 
 ### Run
 ```bash
-# From project root
+# From demos/web directory
+cd demos/web
 python3 -m http.server 8080
 # Open http://localhost:8080 in browser
 ```
@@ -100,10 +102,11 @@ python3 -m http.server 8080
 - Xcode 15.0+
 - [XcodeGen](https://github.com/yonaskolb/XcodeGen) (optional, for regenerating project)
 
-### Open Project
-The Xcode project is pre-generated and ready to use:
+### Generate and Open Project
 ```bash
-open platform/ios/SkiaTextPoc.xcodeproj
+cd demos/ios
+xcodegen generate
+open SkiaTextPoc.xcodeproj
 ```
 
 ### Build and Run
@@ -113,17 +116,9 @@ open platform/ios/SkiaTextPoc.xcodeproj
 
 **Note:** Debug builds link against x86_64 simulator libraries, Release builds link against arm64 device libraries.
 
-### Regenerating the Xcode Project (optional)
-If you need to regenerate the project (e.g., after modifying `project.yml`):
-```bash
-cd platform/ios
-brew install xcodegen  # if not installed
-xcodegen generate
-```
-
 ### Project Structure
 ```
-platform/ios/
+demos/ios/
 ├── project.yml              # XcodeGen spec
 ├── SkiaTextPoc.xcodeproj/   # Generated Xcode project
 └── SkiaTextPoc/
@@ -131,9 +126,12 @@ platform/ios/
     ├── SceneDelegate.swift
     ├── ViewController.swift
     ├── SkiaMetalView.swift
-    ├── SkiaRenderer.h/mm    # ObjC++ bridge to Skia
     ├── SkiaTextPoc-Bridging-Header.h
     └── Info.plist
+
+platform/ios/
+├── SkiaRenderer.hh          # ObjC++ bridge header
+└── SkiaRenderer.mm          # ObjC++ bridge implementation
 ```
 
 ## Validation
@@ -155,16 +153,24 @@ Compare metrics between platforms:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    Platform Layer                            │
+│                      Demo Apps                               │
 ├─────────────────────────┬───────────────────────────────────┤
-│   Web (WASM/WebGL)      │           iOS (Metal)             │
-│   bindings.cpp          │       SkiaRenderer.mm             │
-│   main.js               │       SkiaMetalView.swift         │
+│   demos/web/            │         demos/ios/                 │
+│   index.html, main.js   │   ViewController, SkiaMetalView   │
 └─────────────┬───────────┴───────────────┬───────────────────┘
               │                           │
               ▼                           ▼
 ┌─────────────────────────────────────────────────────────────┐
-│                  Shared C++ Core                             │
+│                   Platform Bindings                          │
+├─────────────────────────┬───────────────────────────────────┤
+│   platform/web/         │       platform/ios/                │
+│   bindings.cpp (Embind) │       SkiaRenderer.mm (ObjC++)    │
+└─────────────┬───────────┴───────────────┬───────────────────┘
+              │                           │
+              ▼                           ▼
+┌─────────────────────────────────────────────────────────────┐
+│              Shared C++ Core (namespace: core)               │
+│                include/core/ + src/                          │
 │              FontManager / TextRenderer                      │
 └─────────────────────────────────────────────────────────────┘
               │

@@ -10,6 +10,8 @@
 #include <optional>
 #include <cstdint>
 
+namespace core {
+
 enum class TextAlignment {
     Left = 0,
     Right = 1,
@@ -290,7 +292,7 @@ private:
     void insertTextAt(const std::u16string& text, int position);
     void adjustStyleRunsForInsert(int position, int length);
     void adjustStyleRunsForDelete(int start, int end);
-    ::TextStyle getStyleAtPosition(int position) const;
+    TextStyle getStyleAtPosition(int position) const;
     bool getGraphemeClusterRangeAt(int position, int* start, int* end) const;
     void mergeAdjacentStyleRuns();
     void clampCursorPosition();
@@ -345,3 +347,5 @@ private:
     mutable int cachedSelectionStart_ = -1;
     mutable int cachedSelectionEnd_ = -1;
 };
+
+} // namespace core

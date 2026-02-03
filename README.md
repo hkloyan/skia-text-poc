@@ -2,6 +2,15 @@
 
 A proof-of-concept for cross-platform text rendering using Skia's SkParagraph (C++), targeting both Web (WASM) and iOS with Metal.
 
+## Features
+
+- Rich text with multiple fonts, sizes, and colors
+- Text styling: bold, italic, underline, letter/word spacing
+- Text shadows and background highlights
+- Paragraph controls: alignment, max lines, ellipsis, line height
+- Interactive editing with cursor and selection
+- Cross-platform metrics validation
+
 ## Project Structure
 
 ```
@@ -62,23 +71,22 @@ export PATH="$HOME/repos/tools/depot_tools:$PATH"
 
 ### 1. Clone and Initialize
 ```bash
-git clone <repo-url>
+git clone https://github.com/hkloyan/skia-text-poc.git
 cd skia-text-poc
 git submodule update --init --recursive
 ```
 
-### 2. Sync Skia Dependencies
+### 2. Sync and Build Skia (optional)
+
+Pre-built Skia libraries are included in `third_party/skia-libs/`. You only need to rebuild if you want to update Skia or modify build options.
+
 ```bash
+# Sync Skia dependencies
 ./scripts/sync_skia_deps.sh
-```
 
-### 3. Build Skia Libraries (one-time, ~30-60 mins per platform)
-```bash
-# For WASM
-./scripts/build_skia_wasm.sh
-
-# For iOS
-./scripts/build_skia_ios.sh
+# Build Skia libraries (~30-60 mins per platform)
+./scripts/build_skia_wasm.sh  # For WASM
+./scripts/build_skia_ios.sh   # For iOS
 ```
 
 ## Web Platform (WASM)
@@ -100,21 +108,19 @@ python3 -m http.server 8080
 
 ### Prerequisites
 - Xcode 15.0+
-- [XcodeGen](https://github.com/yonaskolb/XcodeGen) (optional, for regenerating project)
+- [XcodeGen](https://github.com/yonaskolb/XcodeGen): `brew install xcodegen`
 
 ### Generate and Open Project
 ```bash
 cd demos/ios
-xcodegen generate
+xcodegen generate # optional
 open SkiaTextPoc.xcodeproj
 ```
 
 ### Build and Run
 1. Select the `SkiaTextPoc` scheme
-2. Choose a simulator (Debug) or device (Release)
+2. Choose a physical iOS device
 3. Build and run (⌘R)
-
-**Note:** Debug builds link against x86_64 simulator libraries, Release builds link against arm64 device libraries.
 
 ### Project Structure
 ```
@@ -136,18 +142,10 @@ platform/ios/
 
 ## Validation
 
-Both platforms render identical test text:
-```
-"Hello, World! This is a test of Skia text rendering across platforms. 
-The quick brown fox jumps over the lazy dog. 
-We want to ensure this renders identically on Web and iOS."
-```
-
-Compare metrics between platforms:
-- Height (should match)
-- Width (should match)
-- Line Count (should match)
-- Max/Min Intrinsic Width (should match)
+Both demos render identical rich text with interactive editing. Compare:
+- Layout metrics (height, width, line count)
+- Intrinsic widths (max/min)
+- Visual rendering (fonts, colors, decorations)
 
 ## Architecture
 
@@ -183,7 +181,7 @@ Compare metrics between platforms:
 
 ## Notes
 
-- Both platforms use identical font files (Roboto) for consistent rendering
+- Both platforms use identical font files (Roboto, Playfair Display) for consistent rendering
 - Skia commit is pinned in `SKIA_VERSION` for reproducibility
 - Pre-built libraries are stored in `third_party/skia-libs/`
 - The WASM build uses Skia's bundled emsdk for ABI compatibility

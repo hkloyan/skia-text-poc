@@ -1,6 +1,10 @@
 # Build outputs
 platform/web/dist/
+build/
 *.o
+
+# Cursor IDE
+.cursor/
 
 # Skia build outputs (built from source)
 third_party/skia/out/

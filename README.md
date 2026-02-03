@@ -98,10 +98,9 @@ Pre-built Skia libraries are included in `third_party/skia-libs/`. You only need
 
 ### Run
 ```bash
-# From demos/web directory
-cd demos/web
+# From project root
 python3 -m http.server 8080
-# Open http://localhost:8080 in browser
+# Open http://localhost:8080/demos/web/ in browser
 ```
 
 ## iOS Platform

@@ -219,44 +219,6 @@ function applyStyle(styleProp, value) {
     }
 }
 
-/**
- * Converts emoji to properly encoded string.
- * Handles encoding issues when UTF-8 bytes get misinterpreted as single-byte chars.
- * 
- * The encoding chain:
- * 1. You type 😄 → UTF-8 bytes: F0 9F 98 84
- * 2. Editor misreads as individual characters → ð Ÿ ˜ „
- * 3. This function reverses it → back to bytes → decodes as UTF-8 → 😄
- * 
- * Usage: emoji("😄") → returns properly encoded emoji character
- */
-function emoji(str) {
-    // If already a proper surrogate pair, return as-is
-    if (str.length === 2 && str.charCodeAt(0) >= 0xD800 && str.charCodeAt(0) <= 0xDBFF) {
-        return str;
-    }
-    
-    // Windows-1252 special chars (0x80-0x9F) to original byte values
-    const win1252ToByte = {
-        0x20AC: 0x80, 0x201A: 0x82, 0x0192: 0x83, 0x201E: 0x84,
-        0x2026: 0x85, 0x2020: 0x86, 0x2021: 0x87, 0x02C6: 0x88,
-        0x2030: 0x89, 0x0160: 0x8A, 0x2039: 0x8B, 0x0152: 0x8C,
-        0x017D: 0x8E, 0x2018: 0x91, 0x2019: 0x92, 0x201C: 0x93,
-        0x201D: 0x94, 0x2022: 0x95, 0x2013: 0x96, 0x2014: 0x97,
-        0x02DC: 0x98, 0x2122: 0x99, 0x0161: 0x9A, 0x203A: 0x9B,
-        0x0153: 0x9C, 0x017E: 0x9E, 0x0178: 0x9F
-    };
-    
-    // Convert each character back to its original UTF-8 byte
-    const bytes = new Uint8Array(str.length);
-    for (let i = 0; i < str.length; i++) {
-        const code = str.charCodeAt(i);
-        bytes[i] = win1252ToByte[code] !== undefined ? win1252ToByte[code] : code;
-    }
-    
-    return new TextDecoder('utf-8').decode(bytes);
-}
-
 // === Cursor Blink ===
 
 function startCursorBlink() {
@@ -311,7 +273,7 @@ function renderText(maxWidth) {
     Module.addStyledSpanSimple("multiple fonts ", "Playfair-Italic", 26.0, 0xFF9C27B0, 400, false, false);
     Module.addStyledSpanSimple("and ", "Roboto", 24.0, 0xFF000000, 400, false, false);
     Module.addStyledSpanSimple("styles! ", "Roboto", 24.0, 0xFFFF9800, 400, false, true);
-    Module.addStyledSpanSimple("The quick brown fox jumps over the lazy dog. We also have emojis: " + emoji("😄😅🫠"), "Playfair", 22.0, 0xFF666666, 400, false, false);
+    Module.addStyledSpanSimple("The quick brown fox jumps over the lazy dog. We also have emojis: 😄😅🫠", "Playfair", 22.0, 0xFF666666, 400, false, false);
     Module.addStyledSpanSimple("\nClick to edit. Try typing!", "Playfair", 22.0, 0xFF666666, 400, false, false);
     Module.endRichText();
     
@@ -677,8 +639,52 @@ function setupKeyboardHandlers() {
     });
 }
 
-function setupEmojiFontButton() {
+// Try to load emoji font from system fonts
+// Returns true if successful, false otherwise
+async function tryLoadEmojiFont() {
+    if (!('queryLocalFonts' in window)) {
+        return false;
+    }
+    
+    try {
+        const fonts = await window.queryLocalFonts();
+        const emojiFont = fonts.find(f => 
+            f.family === 'Apple Color Emoji' || 
+            f.family === 'Segoe UI Emoji' ||
+            f.family === 'Noto Color Emoji'
+        );
+        
+        if (emojiFont) {
+            const blob = await emojiFont.blob();
+            const buffer = await blob.arrayBuffer();
+            const data = new Uint8Array(buffer);
+            
+            const ptr = Module._malloc(data.length);
+            Module.HEAPU8.set(data, ptr);
+            Module.registerFont('System Emoji', ptr, data.length);
+            Module._free(ptr);
+            
+            console.log('Emoji font loaded:', emojiFont.family);
+            return emojiFont.family;
+        }
+    } catch (e) {
+        // Permission not granted or other error - this is expected on first visit
+        console.log('Emoji font auto-load skipped:', e.message);
+    }
+    return false;
+}
+
+function setupEmojiFontButton(alreadyLoaded) {
     const emojiFontBtn = document.getElementById('loadEmojiFontBtn');
+    
+    // If already loaded on init, update button state
+    if (alreadyLoaded) {
+        emojiFontBtn.disabled = true;
+        emojiFontBtn.textContent = alreadyLoaded + ' loaded';
+        emojiFontBtn.style.background = 'linear-gradient(135deg, #00ff88, #00d9ff)';
+        return;
+    }
+    
     emojiFontBtn.addEventListener('click', async () => {
         if (!('queryLocalFonts' in window)) {
             alert('Local Font Access API not supported in this browser. Try Chrome.');
@@ -689,31 +695,19 @@ function setupEmojiFontButton() {
             emojiFontBtn.disabled = true;
             emojiFontBtn.textContent = 'Loading...';
             
-            const fonts = await window.queryLocalFonts();
-            const emojiFont = fonts.find(f => 
-                f.family === 'Apple Color Emoji' || 
-                f.family === 'Segoe UI Emoji' ||
-                f.family === 'Noto Color Emoji'
-            );
+            const loadedFont = await tryLoadEmojiFont();
             
-            if (emojiFont) {
-                const blob = await emojiFont.blob();
-                const buffer = await blob.arrayBuffer();
-                const data = new Uint8Array(buffer);
-                
-                const ptr = Module._malloc(data.length);
-                Module.HEAPU8.set(data, ptr);
-                Module.registerFont('System Emoji', ptr, data.length);
-                Module._free(ptr);
-                
-                emojiFontBtn.textContent = emojiFont.family + ' loaded';
+            if (loadedFont) {
+                emojiFontBtn.textContent = loadedFont + ' loaded';
                 emojiFontBtn.style.background = 'linear-gradient(135deg, #00ff88, #00d9ff)';
                 renderText(currentMaxWidth);
             } else {
+                emojiFontBtn.disabled = false;
                 emojiFontBtn.textContent = '❌ No emoji font found';
             }
         } catch (e) {
             console.error('Failed to load emoji font:', e);
+            emojiFontBtn.disabled = false;
             emojiFontBtn.textContent = '❌ ' + e.message;
         }
     });
@@ -769,6 +763,9 @@ async function init() {
         await loadFont('Playfair', '../../assets/fonts/PlayfairDisplay-Regular.ttf');
         await loadFont('Playfair-Italic', '../../assets/fonts/PlayfairDisplay-Italic.ttf');
         
+        // Try to auto-load emoji font if permission was previously granted
+        const emojiFontLoaded = await tryLoadEmojiFont();
+        
         statusEl.textContent = 'Rendering text...';
         
         Module.createTextRenderer();
@@ -785,7 +782,7 @@ async function init() {
         setupToolbarHandlers();
         setupCanvasHandlers(canvas);
         setupKeyboardHandlers();
-        setupEmojiFontButton();
+        setupEmojiFontButton(emojiFontLoaded);
         
         statusEl.textContent = 'Ready';
         statusEl.className = 'status ready';

@@ -185,6 +185,24 @@ Both demos render identical rich text with interactive editing. Compare:
 - Pre-built libraries are stored in `third_party/skia-libs/`
 - The WASM build uses Skia's bundled emsdk for ABI compatibility
 
+## Emoji Support
+
+Emoji rendering requires a color emoji font. Each platform handles this differently:
+
+### iOS
+Emojis work automatically via CoreText fallback to Apple Color Emoji.
+
+### Web
+The bundled fonts don't include emoji glyphs. The demo provides a "Load System Emoji Font" button that uses the [Local Font Access API](https://developer.chrome.com/docs/capabilities/web-apis/local-fonts) to load your system's emoji font:
+- **macOS**: Apple Color Emoji
+- **Windows**: Segoe UI Emoji
+- **Linux**: Noto Color Emoji (if installed)
+
+**Notes:**
+- Only works in Chromium browsers (Chrome, Edge) - Firefox/Safari don't support this API
+- Permission is requested once, then remembered for subsequent visits
+- After granting permission, emojis load automatically on page refresh
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

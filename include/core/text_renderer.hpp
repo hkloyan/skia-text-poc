@@ -117,18 +117,18 @@ public:
     TextStyle build() const;
     
 private:
-    std::string fontFamily_ = "Roboto";
-    float fontSize_ = 16.0f;
-    Color color_ = Color::black();
-    int fontWeight_ = 400;
-    bool italic_ = false;
-    bool underline_ = false;
-    float letterSpacing_ = 0.0f;
-    float wordSpacing_ = 0.0f;
-    bool hasBackground_ = false;
-    Color backgroundColor_ = Color::transparent();
-    bool hasShadow_ = false;
-    TextShadowStyle shadow_;
+    std::string _fontFamily = "Roboto";
+    float _fontSize = 16.0f;
+    Color _color = Color::black();
+    int _fontWeight = 400;
+    bool _italic = false;
+    bool _underline = false;
+    float _letterSpacing = 0.0f;
+    float _wordSpacing = 0.0f;
+    bool _hasBackground = false;
+    Color _backgroundColor = Color::transparent();
+    bool _hasShadow = false;
+    TextShadowStyle _shadow;
 };
 
 struct TextStyle {
@@ -307,45 +307,45 @@ private:
     void invalidateSelectionCache() const;
     float getDefaultCursorHeight() const;
     
-    mutable std::unique_ptr<skia::textlayout::Paragraph> paragraph_;
-    float maxWidth_ = 0;
-    mutable bool needsLayout_ = false;
-    mutable bool needsRebuildParagraph_ = false;
+    mutable std::unique_ptr<skia::textlayout::Paragraph> _paragraph;
+    float _maxWidth = 0;
+    mutable bool _needsLayout = false;
+    mutable bool _needsRebuildParagraph = false;
     
     // Internal text storage for editing
-    std::u16string text_;
-    std::vector<StyleRun> styleRuns_;
-    TextStyle defaultStyle_;
-    TextAlignment textAlignment_ = TextAlignment::Left;
-    int maxLines_ = 0;  // <= 0 means unlimited
-    std::u16string ellipsis_;
-    float lineHeight_ = 0.0f;  // <= 0 means unset
-    TextStrutStyle strutStyle_;
+    std::u16string _text;
+    std::vector<StyleRun> _styleRuns;
+    TextStyle _defaultStyle;
+    TextAlignment _textAlignment = TextAlignment::Left;
+    int _maxLines = 0;  // <= 0 means unlimited
+    std::u16string _ellipsis;
+    float _lineHeight = 0.0f;  // <= 0 means unset
+    TextStrutStyle _strutStyle;
     
     // Cursor/Selection state
-    int selectionAnchor_ = 0;  // where selection started
-    int selectionFocus_ = 0;   // where cursor is (end of selection)
-    mutable bool cursorAffinityDownstream_ = true;
+    int _selectionAnchor = 0;  // where selection started
+    int _selectionFocus = 0;   // where cursor is (end of selection)
+    mutable bool _cursorAffinityDownstream = true;
     
     // Colors
-    Color cursorColor_ = Color::black();
-    Color selectionColor_ = Color::fromARGB(0x400000FF);  // semi-transparent blue
+    Color _cursorColor = Color::black();
+    Color _selectionColor = Color::fromARGB(0x400000FF);  // semi-transparent blue
     
     // Scale factor for high-DPI displays (applies canvas transform in render)
-    float scale_ = 1.0f;
+    float _scale = 1.0f;
     
     // Cursor dimensions
     static constexpr float kCursorWidth = 2.0f;
     
     // Cached cursor rect (invalidated on cursor position change)
-    mutable std::optional<SkRect> cachedCursorRect_;
-    mutable int cachedCursorPosition_ = -1;
-    mutable bool cachedCursorAffinity_ = true;
+    mutable std::optional<SkRect> _cachedCursorRect;
+    mutable int _cachedCursorPosition = -1;
+    mutable bool _cachedCursorAffinity = true;
     
     // Cached selection rects (invalidated on selection change)
-    mutable std::optional<std::vector<SkRect>> cachedSelectionRects_;
-    mutable int cachedSelectionStart_ = -1;
-    mutable int cachedSelectionEnd_ = -1;
+    mutable std::optional<std::vector<SkRect>> _cachedSelectionRects;
+    mutable int _cachedSelectionStart = -1;
+    mutable int _cachedSelectionEnd = -1;
 };
 
 } // namespace core

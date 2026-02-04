@@ -40,8 +40,8 @@ em++ \
   -I "$SKIA_DIR/modules/skunicode/include" \
   -DSK_GANESH \
   -DSK_GL \
-  src/TextRenderer.cpp \
-  src/FontManager.cpp \
+  src/text_renderer.cpp \
+  src/font_manager.cpp \
   platform/web/bindings.cpp \
   "$SKIA_LIBS/libskparagraph.a" \
   "$SKIA_LIBS/libskshaper.a" \

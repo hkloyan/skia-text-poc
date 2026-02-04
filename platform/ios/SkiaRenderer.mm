@@ -1,6 +1,6 @@
 #import "SkiaRenderer.hh"
-#include "core/TextRenderer.h"
-#include "core/FontManager.h"
+#include "core/text_renderer.hpp"
+#include "core/font_manager.hpp"
 
 #include "include/core/SkCanvas.h"
 #include "include/core/SkSurface.h"

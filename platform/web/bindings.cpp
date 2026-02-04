@@ -3,8 +3,8 @@
 #include <emscripten/html5.h>
 #include <GLES3/gl3.h>
 
-#include "core/TextRenderer.h"
-#include "core/FontManager.h"
+#include "core/text_renderer.hpp"
+#include "core/font_manager.hpp"
 
 #include "include/core/SkSurface.h"
 #include "include/core/SkCanvas.h"

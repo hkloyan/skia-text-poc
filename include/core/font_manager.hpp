@@ -33,10 +33,10 @@ private:
     FontManager(const FontManager&) = delete;
     FontManager& operator=(const FontManager&) = delete;
     
-    std::unordered_map<std::string, sk_sp<SkData>> fontData_;
-    std::unordered_map<std::string, sk_sp<SkTypeface>> typefaces_;
-    sk_sp<skia::textlayout::FontCollection> fontCollection_;
-    bool fontCollectionDirty_ = true;
+    std::unordered_map<std::string, sk_sp<SkData>> _fontData;
+    std::unordered_map<std::string, sk_sp<SkTypeface>> _typefaces;
+    sk_sp<skia::textlayout::FontCollection> _fontCollection;
+    bool _fontCollectionDirty = true;
 };
 
 } // namespace core

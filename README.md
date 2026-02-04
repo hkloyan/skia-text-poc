@@ -20,11 +20,11 @@ Try the web demo without building: **[hkloyan.github.io/skia-text-poc](https://h
 ```
 /skia-text-poc
   /include/core             # Public C++ headers (namespace: core)
-    TextRenderer.h
-    FontManager.h
+    text_renderer.hpp
+    font_manager.hpp
   /src                      # C++ implementation
-    TextRenderer.cpp
-    FontManager.cpp
+    text_renderer.cpp
+    font_manager.cpp
   /platform                 # Platform-specific bindings
     /web
       bindings.cpp          # Embind for JS interop

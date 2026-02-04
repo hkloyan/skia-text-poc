@@ -1,5 +1,5 @@
-#include "core/TextRenderer.h"
-#include "core/FontManager.h"
+#include "core/text_renderer.hpp"
+#include "core/font_manager.hpp"
 #include "modules/skparagraph/include/ParagraphBuilder.h"
 #include "modules/skparagraph/include/ParagraphStyle.h"
 #include "modules/skparagraph/include/TextStyle.h"
@@ -19,101 +19,101 @@ namespace core {
 TextStyleBuilder::TextStyleBuilder() = default;
 
 TextStyleBuilder::TextStyleBuilder(const TextStyle& base)
-    : fontFamily_(base.fontFamily)
-    , fontSize_(base.fontSize)
-    , color_(base.color)
-    , fontWeight_(base.fontWeight)
-    , italic_(base.italic)
-    , underline_(base.underline)
-    , letterSpacing_(base.letterSpacing)
-    , wordSpacing_(base.wordSpacing)
-    , hasBackground_(base.hasBackground)
-    , backgroundColor_(base.backgroundColor)
-    , hasShadow_(base.hasShadow)
-    , shadow_(base.shadow)
+    : _fontFamily(base.fontFamily)
+    , _fontSize(base.fontSize)
+    , _color(base.color)
+    , _fontWeight(base.fontWeight)
+    , _italic(base.italic)
+    , _underline(base.underline)
+    , _letterSpacing(base.letterSpacing)
+    , _wordSpacing(base.wordSpacing)
+    , _hasBackground(base.hasBackground)
+    , _backgroundColor(base.backgroundColor)
+    , _hasShadow(base.hasShadow)
+    , _shadow(base.shadow)
 {}
 
 TextStyleBuilder& TextStyleBuilder::fontFamily(const std::string& family) {
-    fontFamily_ = family;
+    _fontFamily = family;
     return *this;
 }
 
 TextStyleBuilder& TextStyleBuilder::fontSize(float size) {
-    fontSize_ = size;
+    _fontSize = size;
     return *this;
 }
 
 TextStyleBuilder& TextStyleBuilder::color(Color c) {
-    color_ = c;
+    _color = c;
     return *this;
 }
 
 TextStyleBuilder& TextStyleBuilder::fontWeight(int weight) {
-    fontWeight_ = weight;
+    _fontWeight = weight;
     return *this;
 }
 
 TextStyleBuilder& TextStyleBuilder::italic(bool value) {
-    italic_ = value;
+    _italic = value;
     return *this;
 }
 
 TextStyleBuilder& TextStyleBuilder::underline(bool value) {
-    underline_ = value;
+    _underline = value;
     return *this;
 }
 
 TextStyleBuilder& TextStyleBuilder::letterSpacing(float spacing) {
-    letterSpacing_ = spacing;
+    _letterSpacing = spacing;
     return *this;
 }
 
 TextStyleBuilder& TextStyleBuilder::wordSpacing(float spacing) {
-    wordSpacing_ = spacing;
+    _wordSpacing = spacing;
     return *this;
 }
 
 TextStyleBuilder& TextStyleBuilder::background(Color c) {
-    hasBackground_ = true;
-    backgroundColor_ = c;
+    _hasBackground = true;
+    _backgroundColor = c;
     return *this;
 }
 
 TextStyleBuilder& TextStyleBuilder::noBackground() {
-    hasBackground_ = false;
-    backgroundColor_ = Color::transparent();
+    _hasBackground = false;
+    _backgroundColor = Color::transparent();
     return *this;
 }
 
 TextStyleBuilder& TextStyleBuilder::shadow(Color c, float offsetX, float offsetY, float blurSigma) {
-    hasShadow_ = true;
-    shadow_.color = c;
-    shadow_.offsetX = offsetX;
-    shadow_.offsetY = offsetY;
-    shadow_.blurSigma = blurSigma;
+    _hasShadow = true;
+    _shadow.color = c;
+    _shadow.offsetX = offsetX;
+    _shadow.offsetY = offsetY;
+    _shadow.blurSigma = blurSigma;
     return *this;
 }
 
 TextStyleBuilder& TextStyleBuilder::noShadow() {
-    hasShadow_ = false;
-    shadow_ = TextShadowStyle{};
+    _hasShadow = false;
+    _shadow = TextShadowStyle{};
     return *this;
 }
 
 TextStyle TextStyleBuilder::build() const {
     TextStyle style;
-    style.fontFamily = fontFamily_;
-    style.fontSize = fontSize_;
-    style.color = color_;
-    style.fontWeight = fontWeight_;
-    style.italic = italic_;
-    style.underline = underline_;
-    style.letterSpacing = letterSpacing_;
-    style.wordSpacing = wordSpacing_;
-    style.hasBackground = hasBackground_;
-    style.backgroundColor = backgroundColor_;
-    style.hasShadow = hasShadow_;
-    style.shadow = shadow_;
+    style.fontFamily = _fontFamily;
+    style.fontSize = _fontSize;
+    style.color = _color;
+    style.fontWeight = _fontWeight;
+    style.italic = _italic;
+    style.underline = _underline;
+    style.letterSpacing = _letterSpacing;
+    style.wordSpacing = _wordSpacing;
+    style.hasBackground = _hasBackground;
+    style.backgroundColor = _backgroundColor;
+    style.hasShadow = _hasShadow;
+    style.shadow = _shadow;
     return style;
 }
 
@@ -206,69 +206,69 @@ void TextRenderer::setText(const std::string& text, const TextStyle& style) {
 
 void TextRenderer::setRichText(const std::vector<StyledSpan>& spans) {
     if (spans.empty()) {
-        text_.clear();
-        styleRuns_.clear();
-        paragraph_.reset();
-        needsLayout_ = false;
-        needsRebuildParagraph_ = false;
-        selectionAnchor_ = selectionFocus_ = 0;
-        cursorAffinityDownstream_ = true;
+        _text.clear();
+        _styleRuns.clear();
+        _paragraph.reset();
+        _needsLayout = false;
+        _needsRebuildParagraph = false;
+        _selectionAnchor = _selectionFocus = 0;
+        _cursorAffinityDownstream = true;
         invalidateCursorCache();
         invalidateSelectionCache();
         return;
     }
     
     // Store internally for editing
-    text_.clear();
-    styleRuns_.clear();
-    defaultStyle_ = spans[0].style;
+    _text.clear();
+    _styleRuns.clear();
+    _defaultStyle = spans[0].style;
     
     int currentPos = 0;
     for (const auto& span : spans) {
         std::u16string spanText = toUtf16(span.text);
         int spanLen = static_cast<int>(spanText.length());
         if (spanLen > 0) {
-            text_ += spanText;
-            styleRuns_.push_back({currentPos, currentPos + spanLen, span.style});
+            _text += spanText;
+            _styleRuns.push_back({currentPos, currentPos + spanLen, span.style});
             currentPos += spanLen;
         }
     }
     
     mergeAdjacentStyleRuns();
-    needsRebuildParagraph_ = true;
+    _needsRebuildParagraph = true;
     clampCursorPosition();
     invalidateCursorCache();
     invalidateSelectionCache();
 }
 
 void TextRenderer::setTextAlignment(TextAlignment alignment) {
-    textAlignment_ = alignment;
-    needsRebuildParagraph_ = true;
+    _textAlignment = alignment;
+    _needsRebuildParagraph = true;
 }
 
 void TextRenderer::setMaxLines(int maxLines) {
-    maxLines_ = maxLines;
-    needsRebuildParagraph_ = true;
+    _maxLines = maxLines;
+    _needsRebuildParagraph = true;
 }
 
 void TextRenderer::setEllipsis(const std::string& ellipsis) {
-    ellipsis_ = toUtf16(ellipsis);
-    needsRebuildParagraph_ = true;
+    _ellipsis = toUtf16(ellipsis);
+    _needsRebuildParagraph = true;
 }
 
 void TextRenderer::setLineHeight(float height) {
-    lineHeight_ = height > 0.0f ? height : 0.0f;
-    needsRebuildParagraph_ = true;
+    _lineHeight = height > 0.0f ? height : 0.0f;
+    _needsRebuildParagraph = true;
 }
 
 void TextRenderer::setStrutStyle(const TextStrutStyle& strutStyle) {
-    strutStyle_ = strutStyle;
-    needsRebuildParagraph_ = true;
+    _strutStyle = strutStyle;
+    _needsRebuildParagraph = true;
 }
 
 void TextRenderer::clearStrutStyle() {
-    strutStyle_.enabled = false;
-    needsRebuildParagraph_ = true;
+    _strutStyle.enabled = false;
+    _needsRebuildParagraph = true;
 }
 
 void TextRenderer::rebuildParagraph() const {
@@ -277,38 +277,38 @@ void TextRenderer::rebuildParagraph() const {
     
     // Configure paragraph style
     ParagraphStyle paragraphStyle;
-    paragraphStyle.setTextAlign(toSkiaAlignment(textAlignment_));
-    if (maxLines_ > 0) {
-        paragraphStyle.setMaxLines(static_cast<size_t>(maxLines_));
+    paragraphStyle.setTextAlign(toSkiaAlignment(_textAlignment));
+    if (_maxLines > 0) {
+        paragraphStyle.setMaxLines(static_cast<size_t>(_maxLines));
     }
-    if (!ellipsis_.empty()) {
-        paragraphStyle.setEllipsis(ellipsis_);
+    if (!_ellipsis.empty()) {
+        paragraphStyle.setEllipsis(_ellipsis);
     }
-    if (strutStyle_.enabled) {
+    if (_strutStyle.enabled) {
         StrutStyle strut;
         strut.setStrutEnabled(true);
-        if (!strutStyle_.fontFamily.empty()) {
-            strut.setFontFamilies({SkString(strutStyle_.fontFamily.c_str())});
+        if (!_strutStyle.fontFamily.empty()) {
+            strut.setFontFamilies({SkString(_strutStyle.fontFamily.c_str())});
         }
-        if (strutStyle_.fontSize > 0.0f) {
-            strut.setFontSize(strutStyle_.fontSize);
-        } else if (defaultStyle_.fontSize > 0.0f) {
-            strut.setFontSize(defaultStyle_.fontSize);
+        if (_strutStyle.fontSize > 0.0f) {
+            strut.setFontSize(_strutStyle.fontSize);
+        } else if (_defaultStyle.fontSize > 0.0f) {
+            strut.setFontSize(_defaultStyle.fontSize);
         }
-        if (strutStyle_.height > 0.0f) {
-            strut.setHeight(strutStyle_.height);
+        if (_strutStyle.height > 0.0f) {
+            strut.setHeight(_strutStyle.height);
         }
-        if (strutStyle_.leading > 0.0f) {
-            strut.setLeading(strutStyle_.leading);
+        if (_strutStyle.leading > 0.0f) {
+            strut.setLeading(_strutStyle.leading);
         }
-        strut.setForceStrutHeight(strutStyle_.forceHeight);
-        strut.setHeightOverride(strutStyle_.heightOverride);
-        strut.setHalfLeading(strutStyle_.halfLeading);
+        strut.setForceStrutHeight(_strutStyle.forceHeight);
+        strut.setHeightOverride(_strutStyle.heightOverride);
+        strut.setHalfLeading(_strutStyle.halfLeading);
         paragraphStyle.setStrutStyle(strut);
     }
     
     // Use default style
-    skia::textlayout::TextStyle defaultSkStyle = toSkiaStyle(defaultStyle_, lineHeight_);
+    skia::textlayout::TextStyle defaultSkStyle = toSkiaStyle(_defaultStyle, _lineHeight);
     paragraphStyle.setTextStyle(defaultSkStyle);
     
     // Build paragraph
@@ -317,33 +317,33 @@ void TextRenderer::rebuildParagraph() const {
         return;
     }
     
-    if (text_.empty()) {
+    if (_text.empty()) {
         // Empty text - just build empty paragraph
-        paragraph_ = builder->Build();
-    } else if (styleRuns_.empty()) {
+        _paragraph = builder->Build();
+    } else if (_styleRuns.empty()) {
         // No style runs - use default style
         builder->pushStyle(defaultSkStyle);
-        builder->addText(text_);
+        builder->addText(_text);
         builder->pop();
-        paragraph_ = builder->Build();
+        _paragraph = builder->Build();
     } else {
         // Add each style run
-        for (const auto& run : styleRuns_) {
-            if (run.start < run.end && run.start >= 0 && run.end <= static_cast<int>(text_.length())) {
-                skia::textlayout::TextStyle skStyle = toSkiaStyle(run.style, lineHeight_);
+        for (const auto& run : _styleRuns) {
+            if (run.start < run.end && run.start >= 0 && run.end <= static_cast<int>(_text.length())) {
+                skia::textlayout::TextStyle skStyle = toSkiaStyle(run.style, _lineHeight);
                 builder->pushStyle(skStyle);
-                std::u16string runText = text_.substr(run.start, run.end - run.start);
+                std::u16string runText = _text.substr(run.start, run.end - run.start);
                 builder->addText(runText);
                 builder->pop();
             }
         }
-        paragraph_ = builder->Build();
+        _paragraph = builder->Build();
     }
     
-    if (paragraph_) {
-        needsLayout_ = true;
+    if (_paragraph) {
+        _needsLayout = true;
     }
-    needsRebuildParagraph_ = false;
+    _needsRebuildParagraph = false;
     
     // Invalidate caches since paragraph changed
     invalidateCursorCache();
@@ -351,41 +351,41 @@ void TextRenderer::rebuildParagraph() const {
 }
 
 void TextRenderer::rebuildParagraphIfNeeded() const {
-    if (needsRebuildParagraph_) {
+    if (_needsRebuildParagraph) {
         rebuildParagraph();
     }
 }
 
 void TextRenderer::setMaxWidth(float maxWidth) {
-    maxWidth_ = maxWidth;
-    needsLayout_ = true;
+    _maxWidth = maxWidth;
+    _needsLayout = true;
     invalidateCursorCache();
     invalidateSelectionCache();
 }
 
 void TextRenderer::layoutIfNeeded() const {
     rebuildParagraphIfNeeded();
-    if (!paragraph_ || !needsLayout_) return;
-    paragraph_->layout(maxWidth_);
-    needsLayout_ = false;
+    if (!_paragraph || !_needsLayout) return;
+    _paragraph->layout(_maxWidth);
+    _needsLayout = false;
     invalidateCursorCache();
     invalidateSelectionCache();
 }
 
 // TODO: Consider caching rendered text to a texture for cursor blink optimization.
-// When only cursor visibility changes, we could skip paragraph_->paint() and just
+// When only cursor visibility changes, we could skip _paragraph->paint() and just
 // redraw the cached text image + cursor. This would reduce draw calls during blink.
 void TextRenderer::render(SkCanvas* canvas, float x, float y, bool showCursor) const {
     rebuildParagraphIfNeeded();
-    if (!paragraph_) return;
+    if (!_paragraph) return;
     layoutIfNeeded();
     
     // Apply scale transform for high-DPI rendering
     // This allows all coordinates (x, y, font sizes, etc.) to be in logical pixels
     // while rendering at physical pixel resolution
     canvas->save();
-    if (scale_ != 1.0f) {
-        canvas->scale(scale_, scale_);
+    if (_scale != 1.0f) {
+        canvas->scale(_scale, _scale);
     }
     
     // 1. Draw selection highlight (behind text)
@@ -394,7 +394,7 @@ void TextRenderer::render(SkCanvas* canvas, float x, float y, bool showCursor) c
     }
     
     // 2. Draw text
-    paragraph_->paint(canvas, x, y);
+    _paragraph->paint(canvas, x, y);
     
     // 3. Draw cursor (on top of text)
     // Only show cursor when there's no selection (typical text editor behavior)
@@ -409,44 +409,44 @@ void TextRenderer::render(SkCanvas* canvas, float x, float y, bool showCursor) c
 
 float TextRenderer::getHeight() const {
     layoutIfNeeded();
-    return paragraph_ ? paragraph_->getHeight() : 0;
+    return _paragraph ? _paragraph->getHeight() : 0;
 }
 
 float TextRenderer::getWidth() const {
     layoutIfNeeded();
-    return paragraph_ ? paragraph_->getMaxWidth() : 0;
+    return _paragraph ? _paragraph->getMaxWidth() : 0;
 }
 
 float TextRenderer::getMaxIntrinsicWidth() const {
     layoutIfNeeded();
-    return paragraph_ ? paragraph_->getMaxIntrinsicWidth() : 0;
+    return _paragraph ? _paragraph->getMaxIntrinsicWidth() : 0;
 }
 
 float TextRenderer::getMinIntrinsicWidth() const {
     layoutIfNeeded();
-    return paragraph_ ? paragraph_->getMinIntrinsicWidth() : 0;
+    return _paragraph ? _paragraph->getMinIntrinsicWidth() : 0;
 }
 
 int TextRenderer::getLineCount() const {
     layoutIfNeeded();
-    return paragraph_ ? static_cast<int>(paragraph_->lineNumber()) : 0;
+    return _paragraph ? static_cast<int>(_paragraph->lineNumber()) : 0;
 }
 
 int TextRenderer::getTextLength() const {
-    return static_cast<int>(text_.length());
+    return static_cast<int>(_text.length());
 }
 
 // === Text Content ===
 
 std::string TextRenderer::getText() const {
-    return toUtf8(text_);
+    return toUtf8(_text);
 }
 
 std::string TextRenderer::getSelectedText() const {
     if (!hasSelection()) return "";
     auto [start, end] = getSelection();
     if (start < 0 || end <= start) return "";
-    std::u16string slice = text_.substr(static_cast<size_t>(start),
+    std::u16string slice = _text.substr(static_cast<size_t>(start),
                                         static_cast<size_t>(end - start));
     return toUtf8(slice);
 }
@@ -462,10 +462,10 @@ void TextRenderer::insertText(const std::string& newText) {
         deleteSelection();
     }
     
-    insertTextAt(newText16, selectionFocus_);
+    insertTextAt(newText16, _selectionFocus);
     
     // Move cursor to end of inserted text
-    selectionAnchor_ = selectionFocus_ = selectionFocus_ + static_cast<int>(newText16.length());
+    _selectionAnchor = _selectionFocus = _selectionFocus + static_cast<int>(newText16.length());
     clampCursorPosition();
     invalidateCursorCache();
 }
@@ -476,17 +476,17 @@ void TextRenderer::deleteBackward() {
         return;
     }
     
-    if (selectionFocus_ <= 0) return;
+    if (_selectionFocus <= 0) return;
     
     // Delete the grapheme cluster before the cursor
-    int deleteStart = selectionFocus_ - 1;
-    int deleteEnd = selectionFocus_;
-    if (getGraphemeClusterRangeAt(selectionFocus_ - 1, &deleteStart, &deleteEnd)) {
+    int deleteStart = _selectionFocus - 1;
+    int deleteEnd = _selectionFocus;
+    if (getGraphemeClusterRangeAt(_selectionFocus - 1, &deleteStart, &deleteEnd)) {
         deleteRange(deleteStart, deleteEnd);
-        selectionAnchor_ = selectionFocus_ = deleteStart;
+        _selectionAnchor = _selectionFocus = deleteStart;
     } else {
-        deleteRange(deleteStart, selectionFocus_);
-        selectionAnchor_ = selectionFocus_ = deleteStart;
+        deleteRange(deleteStart, _selectionFocus);
+        _selectionAnchor = _selectionFocus = deleteStart;
     }
     clampCursorPosition();
     invalidateCursorCache();
@@ -498,16 +498,16 @@ void TextRenderer::deleteForward() {
         return;
     }
     
-    if (selectionFocus_ >= static_cast<int>(text_.length())) return;
+    if (_selectionFocus >= static_cast<int>(_text.length())) return;
     
     // Delete the grapheme cluster after the cursor
-    int deleteStart = selectionFocus_;
-    int deleteEnd = selectionFocus_ + 1;
-    if (getGraphemeClusterRangeAt(selectionFocus_, &deleteStart, &deleteEnd)) {
+    int deleteStart = _selectionFocus;
+    int deleteEnd = _selectionFocus + 1;
+    if (getGraphemeClusterRangeAt(_selectionFocus, &deleteStart, &deleteEnd)) {
         deleteRange(deleteStart, deleteEnd);
-        selectionAnchor_ = selectionFocus_ = deleteStart;
+        _selectionAnchor = _selectionFocus = deleteStart;
     } else {
-        deleteRange(selectionFocus_, selectionFocus_ + 1);
+        deleteRange(_selectionFocus, _selectionFocus + 1);
     }
     clampCursorPosition();
     invalidateCursorCache();
@@ -519,14 +519,14 @@ void TextRenderer::deleteWordBackward() {
         return;
     }
     
-    if (selectionFocus_ <= 0) return;
+    if (_selectionFocus <= 0) return;
     
     // Find word boundary before cursor
-    auto boundary = getWordBoundary(selectionFocus_ - 1);
+    auto boundary = getWordBoundary(_selectionFocus - 1);
     int deleteStart = boundary ? boundary->first : 0;
     
-    deleteRange(deleteStart, selectionFocus_);
-    selectionAnchor_ = selectionFocus_ = deleteStart;
+    deleteRange(deleteStart, _selectionFocus);
+    _selectionAnchor = _selectionFocus = deleteStart;
     clampCursorPosition();
     invalidateCursorCache();
 }
@@ -537,13 +537,13 @@ void TextRenderer::deleteWordForward() {
         return;
     }
     
-    if (selectionFocus_ >= static_cast<int>(text_.length())) return;
+    if (_selectionFocus >= static_cast<int>(_text.length())) return;
     
     // Find word boundary after cursor
-    auto boundary = getWordBoundary(selectionFocus_);
-    int wordEnd = boundary ? boundary->second : static_cast<int>(text_.length());
+    auto boundary = getWordBoundary(_selectionFocus);
+    int wordEnd = boundary ? boundary->second : static_cast<int>(_text.length());
     
-    deleteRange(selectionFocus_, wordEnd);
+    deleteRange(_selectionFocus, wordEnd);
     clampCursorPosition();
     invalidateCursorCache();
 }
@@ -553,7 +553,7 @@ void TextRenderer::deleteSelection() {
     
     auto [start, end] = getSelection();
     deleteRange(start, end);
-    selectionAnchor_ = selectionFocus_ = start;
+    _selectionAnchor = _selectionFocus = start;
     clampCursorPosition();
     invalidateCursorCache();
     invalidateSelectionCache();
@@ -568,23 +568,23 @@ void TextRenderer::insertStyledText(const StyledSpan& span) {
         deleteSelection();
     }
     
-    int position = selectionFocus_;
+    int position = _selectionFocus;
     int len = static_cast<int>(spanText.length());
     
     // Insert into plain text
-    text_.insert(position, spanText);
+    _text.insert(position, spanText);
     
     // Adjust existing style runs for the insertion
     adjustStyleRunsForInsert(position, len);
     
     // Add new style run for the inserted text
-    styleRuns_.push_back({position, position + len, span.style});
+    _styleRuns.push_back({position, position + len, span.style});
     mergeAdjacentStyleRuns();
     
-    needsRebuildParagraph_ = true;
+    _needsRebuildParagraph = true;
     
     // Move cursor to end of inserted text
-    selectionAnchor_ = selectionFocus_ = position + len;
+    _selectionAnchor = _selectionFocus = position + len;
     clampCursorPosition();
     invalidateCursorCache();
 }
@@ -596,7 +596,7 @@ void TextRenderer::applyStyleToSelection(const TextStyle& style) {
     
     // Remove or split existing style runs that overlap with the selection
     std::vector<StyleRun> newRuns;
-    for (const auto& run : styleRuns_) {
+    for (const auto& run : _styleRuns) {
         if (run.end <= start || run.start >= end) {
             // No overlap - keep as is
             newRuns.push_back(run);
@@ -618,15 +618,15 @@ void TextRenderer::applyStyleToSelection(const TextStyle& style) {
     // Add the new style run for the selection
     newRuns.push_back({start, end, style});
     
-    styleRuns_ = std::move(newRuns);
+    _styleRuns = std::move(newRuns);
     mergeAdjacentStyleRuns();
-    needsRebuildParagraph_ = true;
+    _needsRebuildParagraph = true;
 }
 
 TextStyle TextRenderer::getStyleAtCursor() const {
     // When cursor is at a boundary, prefer the style to the left (the preceding character)
     // This matches typical text editor behavior where typing continues in the same style
-    int position = selectionFocus_;
+    int position = _selectionFocus;
     if (position > 0) {
         return getStyleAtPosition(position - 1);
     }
@@ -642,7 +642,7 @@ void TextRenderer::insertTextAt(const std::u16string& newText, int position) {
     TextStyle insertStyle = getStyleAtPosition(position > 0 ? position - 1 : position);
     
     // Insert into plain text
-    text_.insert(position, newText);
+    _text.insert(position, newText);
     
     // Adjust style runs
     adjustStyleRunsForInsert(position, len);
@@ -650,7 +650,7 @@ void TextRenderer::insertTextAt(const std::u16string& newText, int position) {
     // If we inserted into an existing run, it's already extended
     // If we inserted at a boundary or in empty text, we need to ensure coverage
     bool covered = false;
-    for (const auto& run : styleRuns_) {
+    for (const auto& run : _styleRuns) {
         if (run.start <= position && run.end >= position + len) {
             covered = true;
             break;
@@ -663,31 +663,31 @@ void TextRenderer::insertTextAt(const std::u16string& newText, int position) {
         StyleRun newRun{position, position + len, insertStyle};
         
         // Insert in sorted order
-        auto it = std::lower_bound(styleRuns_.begin(), styleRuns_.end(), newRun,
+        auto it = std::lower_bound(_styleRuns.begin(), _styleRuns.end(), newRun,
             [](const StyleRun& a, const StyleRun& b) { return a.start < b.start; });
-        styleRuns_.insert(it, newRun);
+        _styleRuns.insert(it, newRun);
     }
     
     mergeAdjacentStyleRuns();
-    needsRebuildParagraph_ = true;
+    _needsRebuildParagraph = true;
 }
 
 void TextRenderer::deleteRange(int start, int end) {
-    if (start >= end || start < 0 || end > static_cast<int>(text_.length())) return;
+    if (start >= end || start < 0 || end > static_cast<int>(_text.length())) return;
     
     // Delete from plain text
-    text_.erase(start, end - start);
+    _text.erase(start, end - start);
     
     // Adjust style runs
     adjustStyleRunsForDelete(start, end);
     
     mergeAdjacentStyleRuns();
-    needsRebuildParagraph_ = true;
+    _needsRebuildParagraph = true;
     invalidateSelectionCache();
 }
 
 void TextRenderer::adjustStyleRunsForInsert(int position, int length) {
-    for (auto& run : styleRuns_) {
+    for (auto& run : _styleRuns) {
         if (run.start >= position) {
             // Run is entirely after insert point - shift it
             run.start += length;
@@ -704,7 +704,7 @@ void TextRenderer::adjustStyleRunsForDelete(int start, int end) {
     int len = end - start;
     std::vector<StyleRun> newRuns;
     
-    for (auto& run : styleRuns_) {
+    for (auto& run : _styleRuns) {
         if (run.end <= start) {
             // Run entirely before deletion - keep as is
             newRuns.push_back(run);
@@ -737,24 +737,24 @@ void TextRenderer::adjustStyleRunsForDelete(int start, int end) {
         }
     }
     
-    styleRuns_ = std::move(newRuns);
+    _styleRuns = std::move(newRuns);
 }
 
 TextStyle TextRenderer::getStyleAtPosition(int position) const {
-    for (const auto& run : styleRuns_) {
+    for (const auto& run : _styleRuns) {
         if (position >= run.start && position < run.end) {
             return run.style;
         }
     }
-    return defaultStyle_;
+    return _defaultStyle;
 }
 
 bool TextRenderer::getGraphemeClusterRangeAt(int position, int* start, int* end) const {
     rebuildParagraphIfNeeded();
-    if (!paragraph_ || position < 0) return false;
+    if (!_paragraph || position < 0) return false;
     layoutIfNeeded();
     Paragraph::GlyphInfo info;
-    if (!paragraph_->getGlyphInfoAtUTF16Offset(static_cast<size_t>(position), &info)) {
+    if (!_paragraph->getGlyphInfoAtUTF16Offset(static_cast<size_t>(position), &info)) {
         return false;
     }
     if (start) {
@@ -767,18 +767,18 @@ bool TextRenderer::getGraphemeClusterRangeAt(int position, int* start, int* end)
 }
 
 void TextRenderer::mergeAdjacentStyleRuns() {
-    if (styleRuns_.size() < 2) return;
+    if (_styleRuns.size() < 2) return;
     
     // Sort by start position
-    std::sort(styleRuns_.begin(), styleRuns_.end(),
+    std::sort(_styleRuns.begin(), _styleRuns.end(),
         [](const StyleRun& a, const StyleRun& b) { return a.start < b.start; });
     
     std::vector<StyleRun> merged;
-    merged.push_back(styleRuns_[0]);
+    merged.push_back(_styleRuns[0]);
     
-    for (size_t i = 1; i < styleRuns_.size(); ++i) {
+    for (size_t i = 1; i < _styleRuns.size(); ++i) {
         StyleRun& last = merged.back();
-        const StyleRun& current = styleRuns_[i];
+        const StyleRun& current = _styleRuns[i];
         
         // Merge if adjacent and same style
         if (last.end == current.start && last.style == current.style) {
@@ -819,13 +819,13 @@ void TextRenderer::mergeAdjacentStyleRuns() {
         }
     }
     
-    styleRuns_ = std::move(merged);
+    _styleRuns = std::move(merged);
 }
 
 void TextRenderer::clampCursorPosition() {
-    int textLen = static_cast<int>(text_.length());
-    selectionAnchor_ = std::clamp(selectionAnchor_, 0, textLen);
-    selectionFocus_ = std::clamp(selectionFocus_, 0, textLen);
+    int textLen = static_cast<int>(_text.length());
+    _selectionAnchor = std::clamp(_selectionAnchor, 0, textLen);
+    _selectionFocus = std::clamp(_selectionFocus, 0, textLen);
 }
 
 // === Cursor Navigation ===
@@ -834,22 +834,22 @@ void TextRenderer::moveCursorLeft(bool extendSelection) {
     if (!extendSelection && hasSelection()) {
         // Collapse selection to start
         auto [start, end] = getSelection();
-        selectionAnchor_ = selectionFocus_ = start;
+        _selectionAnchor = _selectionFocus = start;
         invalidateCursorCache();
         invalidateSelectionCache();
         return;
     }
     
-    if (selectionFocus_ > 0) {
-        int clusterStart = selectionFocus_ - 1;
-        int clusterEnd = selectionFocus_;
-        if (getGraphemeClusterRangeAt(selectionFocus_ - 1, &clusterStart, &clusterEnd)) {
-            selectionFocus_ = clusterStart;
+    if (_selectionFocus > 0) {
+        int clusterStart = _selectionFocus - 1;
+        int clusterEnd = _selectionFocus;
+        if (getGraphemeClusterRangeAt(_selectionFocus - 1, &clusterStart, &clusterEnd)) {
+            _selectionFocus = clusterStart;
         } else {
-            selectionFocus_--;
+            _selectionFocus--;
         }
         if (!extendSelection) {
-            selectionAnchor_ = selectionFocus_;
+            _selectionAnchor = _selectionFocus;
         }
         invalidateCursorCache();
         if (extendSelection) invalidateSelectionCache();
@@ -860,22 +860,22 @@ void TextRenderer::moveCursorRight(bool extendSelection) {
     if (!extendSelection && hasSelection()) {
         // Collapse selection to end
         auto [start, end] = getSelection();
-        selectionAnchor_ = selectionFocus_ = end;
+        _selectionAnchor = _selectionFocus = end;
         invalidateCursorCache();
         invalidateSelectionCache();
         return;
     }
     
-    if (selectionFocus_ < static_cast<int>(text_.length())) {
-        int clusterStart = selectionFocus_;
-        int clusterEnd = selectionFocus_ + 1;
-        if (getGraphemeClusterRangeAt(selectionFocus_, &clusterStart, &clusterEnd)) {
-            selectionFocus_ = clusterEnd;
+    if (_selectionFocus < static_cast<int>(_text.length())) {
+        int clusterStart = _selectionFocus;
+        int clusterEnd = _selectionFocus + 1;
+        if (getGraphemeClusterRangeAt(_selectionFocus, &clusterStart, &clusterEnd)) {
+            _selectionFocus = clusterEnd;
         } else {
-            selectionFocus_++;
+            _selectionFocus++;
         }
         if (!extendSelection) {
-            selectionAnchor_ = selectionFocus_;
+            _selectionAnchor = _selectionFocus;
         }
         invalidateCursorCache();
         if (extendSelection) invalidateSelectionCache();
@@ -884,18 +884,18 @@ void TextRenderer::moveCursorRight(bool extendSelection) {
 
 void TextRenderer::moveCursorUp(bool extendSelection) {
     rebuildParagraphIfNeeded();
-    if (!paragraph_) return;
+    if (!_paragraph) return;
     layoutIfNeeded();
     
     // Get current line
-    int currentLine = getLineIndexForPosition(selectionFocus_);
+    int currentLine = getLineIndexForPosition(_selectionFocus);
     if (currentLine <= 0) {
         // Already on first line, move to start
-        selectionFocus_ = 0;
+        _selectionFocus = 0;
     } else {
         // Move to same x position on previous line
         std::vector<LineMetrics> lineMetrics;
-        paragraph_->getLineMetrics(lineMetrics);
+        _paragraph->getLineMetrics(lineMetrics);
         
         float currentX = getXPositionForCursor();
         
@@ -904,13 +904,13 @@ void TextRenderer::moveCursorUp(bool extendSelection) {
         int pos = 0;
         bool downstream = true;
         if (getGlyphPositionWithAffinityAtCoordinate(currentX, prevLineY, &pos, &downstream)) {
-            selectionFocus_ = pos;
-            cursorAffinityDownstream_ = downstream;
+            _selectionFocus = pos;
+            _cursorAffinityDownstream = downstream;
         }
     }
     
     if (!extendSelection) {
-        selectionAnchor_ = selectionFocus_;
+        _selectionAnchor = _selectionFocus;
     }
     clampCursorPosition();
     invalidateCursorCache();
@@ -919,16 +919,16 @@ void TextRenderer::moveCursorUp(bool extendSelection) {
 
 void TextRenderer::moveCursorDown(bool extendSelection) {
     rebuildParagraphIfNeeded();
-    if (!paragraph_) return;
+    if (!_paragraph) return;
     layoutIfNeeded();
     
     std::vector<LineMetrics> lineMetrics;
-    paragraph_->getLineMetrics(lineMetrics);
+    _paragraph->getLineMetrics(lineMetrics);
     
-    int currentLine = getLineIndexForPosition(selectionFocus_);
+    int currentLine = getLineIndexForPosition(_selectionFocus);
     if (currentLine >= static_cast<int>(lineMetrics.size()) - 1) {
         // Already on last line, move to end
-        selectionFocus_ = static_cast<int>(text_.length());
+        _selectionFocus = static_cast<int>(_text.length());
     } else {
         // Move to same x position on next line
         float currentX = getXPositionForCursor();
@@ -938,13 +938,13 @@ void TextRenderer::moveCursorDown(bool extendSelection) {
         int pos = 0;
         bool downstream = true;
         if (getGlyphPositionWithAffinityAtCoordinate(currentX, nextLineY, &pos, &downstream)) {
-            selectionFocus_ = pos;
-            cursorAffinityDownstream_ = downstream;
+            _selectionFocus = pos;
+            _cursorAffinityDownstream = downstream;
         }
     }
     
     if (!extendSelection) {
-        selectionAnchor_ = selectionFocus_;
+        _selectionAnchor = _selectionFocus;
     }
     clampCursorPosition();
     invalidateCursorCache();
@@ -952,101 +952,101 @@ void TextRenderer::moveCursorDown(bool extendSelection) {
 }
 
 void TextRenderer::moveCursorToWordStart(bool extendSelection) {
-    if (selectionFocus_ <= 0) return;
+    if (_selectionFocus <= 0) return;
     
-    auto boundary = getWordBoundary(selectionFocus_ - 1);
+    auto boundary = getWordBoundary(_selectionFocus - 1);
     if (boundary) {
-        selectionFocus_ = boundary->first;
+        _selectionFocus = boundary->first;
     }
     
     if (!extendSelection) {
-        selectionAnchor_ = selectionFocus_;
+        _selectionAnchor = _selectionFocus;
     }
     invalidateCursorCache();
     if (extendSelection) invalidateSelectionCache();
 }
 
 void TextRenderer::moveCursorToWordEnd(bool extendSelection) {
-    if (selectionFocus_ >= static_cast<int>(text_.length())) return;
+    if (_selectionFocus >= static_cast<int>(_text.length())) return;
     
-    auto boundary = getWordBoundary(selectionFocus_);
+    auto boundary = getWordBoundary(_selectionFocus);
     if (boundary) {
-        selectionFocus_ = boundary->second;
+        _selectionFocus = boundary->second;
     }
     
     if (!extendSelection) {
-        selectionAnchor_ = selectionFocus_;
+        _selectionAnchor = _selectionFocus;
     }
     invalidateCursorCache();
     if (extendSelection) invalidateSelectionCache();
 }
 
 void TextRenderer::moveCursorToLineStart(bool extendSelection) {
-    auto boundary = getLineBoundary(selectionFocus_);
+    auto boundary = getLineBoundary(_selectionFocus);
     if (boundary) {
-        selectionFocus_ = boundary->first;
+        _selectionFocus = boundary->first;
     }
     
     if (!extendSelection) {
-        selectionAnchor_ = selectionFocus_;
+        _selectionAnchor = _selectionFocus;
     }
     invalidateCursorCache();
     if (extendSelection) invalidateSelectionCache();
 }
 
 void TextRenderer::moveCursorToLineEnd(bool extendSelection) {
-    auto boundary = getLineBoundary(selectionFocus_);
+    auto boundary = getLineBoundary(_selectionFocus);
     if (boundary) {
         int end = boundary->second;
         // Don't include the newline character if there is one
-        if (end > boundary->first && end <= static_cast<int>(text_.length()) && 
-            text_[end - 1] == u'\n') {
+        if (end > boundary->first && end <= static_cast<int>(_text.length()) && 
+            _text[end - 1] == u'\n') {
             end--;
         }
-        selectionFocus_ = end;
+        _selectionFocus = end;
     }
     
     if (!extendSelection) {
-        selectionAnchor_ = selectionFocus_;
+        _selectionAnchor = _selectionFocus;
     }
     invalidateCursorCache();
     if (extendSelection) invalidateSelectionCache();
 }
 
 void TextRenderer::moveCursorToDocumentStart(bool extendSelection) {
-    selectionFocus_ = 0;
+    _selectionFocus = 0;
     
     if (!extendSelection) {
-        selectionAnchor_ = selectionFocus_;
+        _selectionAnchor = _selectionFocus;
     }
     invalidateCursorCache();
     if (extendSelection) invalidateSelectionCache();
 }
 
 void TextRenderer::moveCursorToDocumentEnd(bool extendSelection) {
-    selectionFocus_ = static_cast<int>(text_.length());
+    _selectionFocus = static_cast<int>(_text.length());
     
     if (!extendSelection) {
-        selectionAnchor_ = selectionFocus_;
+        _selectionAnchor = _selectionFocus;
     }
     invalidateCursorCache();
     if (extendSelection) invalidateSelectionCache();
 }
 
 void TextRenderer::selectAll() {
-    selectionAnchor_ = 0;
-    selectionFocus_ = static_cast<int>(text_.length());
+    _selectionAnchor = 0;
+    _selectionFocus = static_cast<int>(_text.length());
     invalidateCursorCache();
     invalidateSelectionCache();
 }
 
 int TextRenderer::getLineIndexForPosition(int position) const {
     rebuildParagraphIfNeeded();
-    if (!paragraph_) return 0;
+    if (!_paragraph) return 0;
     layoutIfNeeded();
     
     std::vector<LineMetrics> lineMetrics;
-    paragraph_->getLineMetrics(lineMetrics);
+    _paragraph->getLineMetrics(lineMetrics);
     
     for (size_t i = 0; i < lineMetrics.size(); ++i) {
         if (position >= static_cast<int>(lineMetrics[i].fStartIndex) &&
@@ -1066,25 +1066,25 @@ float TextRenderer::getXPositionForCursor() const {
 // === Cursor ===
 
 void TextRenderer::setCursorPosition(int position) {
-    selectionAnchor_ = position;
-    selectionFocus_ = position;
+    _selectionAnchor = position;
+    _selectionFocus = position;
     clampCursorPosition();
-    cursorAffinityDownstream_ = true;
+    _cursorAffinityDownstream = true;
     invalidateCursorCache();
     invalidateSelectionCache();
 }
 
 int TextRenderer::getCursorPosition() const {
-    return selectionFocus_;
+    return _selectionFocus;
 }
 
 void TextRenderer::setCursorPositionAtCoordinate(float x, float y) {
     int pos = 0;
     bool downstream = true;
     if (getGlyphPositionWithAffinityAtCoordinate(x, y, &pos, &downstream)) {
-        selectionAnchor_ = pos;
-        selectionFocus_ = pos;
-        cursorAffinityDownstream_ = downstream;
+        _selectionAnchor = pos;
+        _selectionFocus = pos;
+        _cursorAffinityDownstream = downstream;
         clampCursorPosition();
         invalidateCursorCache();
         invalidateSelectionCache();
@@ -1094,26 +1094,26 @@ void TextRenderer::setCursorPositionAtCoordinate(float x, float y) {
 // === Selection ===
 
 void TextRenderer::setSelection(int start, int end) {
-    selectionAnchor_ = start;
-    selectionFocus_ = end;
+    _selectionAnchor = start;
+    _selectionFocus = end;
     clampCursorPosition();
-    cursorAffinityDownstream_ = true;
+    _cursorAffinityDownstream = true;
     invalidateCursorCache();
     invalidateSelectionCache();
 }
 
 void TextRenderer::clearSelection() {
-    selectionAnchor_ = selectionFocus_;
+    _selectionAnchor = _selectionFocus;
     invalidateSelectionCache();
 }
 
 bool TextRenderer::hasSelection() const {
-    return selectionAnchor_ != selectionFocus_;
+    return _selectionAnchor != _selectionFocus;
 }
 
 std::pair<int, int> TextRenderer::getSelection() const {
-    return {std::min(selectionAnchor_, selectionFocus_),
-            std::max(selectionAnchor_, selectionFocus_)};
+    return {std::min(_selectionAnchor, _selectionFocus),
+            std::max(_selectionAnchor, _selectionFocus)};
 }
 
 void TextRenderer::setWordSelectionAtCoordinate(float x, float y) {
@@ -1140,9 +1140,9 @@ void TextRenderer::beginSelectionAtCoordinate(float x, float y) {
     int pos = 0;
     bool downstream = true;
     if (getGlyphPositionWithAffinityAtCoordinate(x, y, &pos, &downstream)) {
-        selectionAnchor_ = pos;
-        selectionFocus_ = pos;
-        cursorAffinityDownstream_ = downstream;
+        _selectionAnchor = pos;
+        _selectionFocus = pos;
+        _cursorAffinityDownstream = downstream;
         invalidateCursorCache();
         invalidateSelectionCache();
     }
@@ -1152,8 +1152,8 @@ void TextRenderer::extendSelectionToCoordinate(float x, float y) {
     int pos = 0;
     bool downstream = true;
     if (getGlyphPositionWithAffinityAtCoordinate(x, y, &pos, &downstream)) {
-        selectionFocus_ = pos;
-        cursorAffinityDownstream_ = downstream;
+        _selectionFocus = pos;
+        _cursorAffinityDownstream = downstream;
         // Anchor stays fixed, only focus moves
         invalidateCursorCache();
         invalidateSelectionCache();
@@ -1163,27 +1163,27 @@ void TextRenderer::extendSelectionToCoordinate(float x, float y) {
 // === Colors ===
 
 void TextRenderer::setCursorColor(Color color) {
-    cursorColor_ = color;
+    _cursorColor = color;
 }
 
 Color TextRenderer::getCursorColor() const {
-    return cursorColor_;
+    return _cursorColor;
 }
 
 void TextRenderer::setSelectionColor(Color color) {
-    selectionColor_ = color;
+    _selectionColor = color;
 }
 
 Color TextRenderer::getSelectionColor() const {
-    return selectionColor_;
+    return _selectionColor;
 }
 
 void TextRenderer::setScale(float scale) {
-    scale_ = scale;
+    _scale = scale;
 }
 
 float TextRenderer::getScale() const {
-    return scale_;
+    return _scale;
 }
 
 // === Query methods ===
@@ -1199,9 +1199,9 @@ std::optional<int> TextRenderer::getGlyphPositionAtCoordinate(float x, float y) 
 
 bool TextRenderer::getGlyphPositionWithAffinityAtCoordinate(float x, float y, int* position, bool* downstream) const {
     rebuildParagraphIfNeeded();
-    if (!paragraph_) return false;
+    if (!_paragraph) return false;
     layoutIfNeeded();
-    auto pos = paragraph_->getGlyphPositionAtCoordinate(x, y);
+    auto pos = _paragraph->getGlyphPositionAtCoordinate(x, y);
     if (position) {
         *position = static_cast<int>(pos.position);
     }
@@ -1214,10 +1214,10 @@ bool TextRenderer::getGlyphPositionWithAffinityAtCoordinate(float x, float y, in
 std::vector<SkRect> TextRenderer::getRectsForRange(int start, int end) const {
     std::vector<SkRect> result;
     rebuildParagraphIfNeeded();
-    if (!paragraph_ || start >= end) return result;
+    if (!_paragraph || start >= end) return result;
     layoutIfNeeded();
     
-    auto boxes = paragraph_->getRectsForRange(
+    auto boxes = _paragraph->getRectsForRange(
         start, end,
         RectHeightStyle::kTight,
         RectWidthStyle::kTight
@@ -1231,21 +1231,21 @@ std::vector<SkRect> TextRenderer::getRectsForRange(int start, int end) const {
 
 std::optional<std::pair<int, int>> TextRenderer::getWordBoundary(int position) const {
     rebuildParagraphIfNeeded();
-    if (!paragraph_) return std::nullopt;
+    if (!_paragraph) return std::nullopt;
     layoutIfNeeded();
     
-    auto range = paragraph_->getWordBoundary(position);
+    auto range = _paragraph->getWordBoundary(position);
     return std::make_pair(static_cast<int>(range.start), static_cast<int>(range.end));
 }
 
 std::optional<std::pair<int, int>> TextRenderer::getLineBoundary(int position) const {
     rebuildParagraphIfNeeded();
-    if (!paragraph_) return std::nullopt;
+    if (!_paragraph) return std::nullopt;
     layoutIfNeeded();
     
     // Get line metrics to find which line contains this position
     std::vector<LineMetrics> lineMetrics;
-    paragraph_->getLineMetrics(lineMetrics);
+    _paragraph->getLineMetrics(lineMetrics);
     
     for (const auto& line : lineMetrics) {
         if (position >= static_cast<int>(line.fStartIndex) && 
@@ -1268,36 +1268,36 @@ std::optional<std::pair<int, int>> TextRenderer::getLineBoundary(int position) c
 // === Private rendering helpers ===
 
 void TextRenderer::invalidateCursorCache() const {
-    cachedCursorRect_.reset();
+    _cachedCursorRect.reset();
 }
 
 void TextRenderer::invalidateSelectionCache() const {
-    cachedSelectionRects_.reset();
+    _cachedSelectionRects.reset();
 }
 
 float TextRenderer::getDefaultCursorHeight() const {
     // Derive fallback height from default font size (1.2x line height multiplier is standard)
-    return defaultStyle_.fontSize > 0.0f ? defaultStyle_.fontSize * 1.2f : 20.0f;
+    return _defaultStyle.fontSize > 0.0f ? _defaultStyle.fontSize * 1.2f : 20.0f;
 }
 
 void TextRenderer::drawSelection(SkCanvas* canvas, float x, float y) const {
     auto [start, end] = getSelection();
     
     // Check if cache is valid
-    if (!cachedSelectionRects_ || 
-        cachedSelectionStart_ != start || 
-        cachedSelectionEnd_ != end) {
+    if (!_cachedSelectionRects || 
+        _cachedSelectionStart != start || 
+        _cachedSelectionEnd != end) {
         // Rebuild cache
-        cachedSelectionRects_ = getRectsForRange(start, end);
-        cachedSelectionStart_ = start;
-        cachedSelectionEnd_ = end;
+        _cachedSelectionRects = getRectsForRange(start, end);
+        _cachedSelectionStart = start;
+        _cachedSelectionEnd = end;
     }
     
     SkPaint paint;
-    paint.setColor(selectionColor_.toARGB());
+    paint.setColor(_selectionColor.toARGB());
     paint.setStyle(SkPaint::kFill_Style);
     
-    for (const auto& rect : *cachedSelectionRects_) {
+    for (const auto& rect : *_cachedSelectionRects) {
         // Offset rect by text position
         SkRect offsetRect = rect.makeOffset(x, y);
         canvas->drawRect(offsetRect, paint);
@@ -1312,7 +1312,7 @@ void TextRenderer::drawCursor(SkCanvas* canvas, float x, float y) const {
     cursorRect.offset(x, y);
     
     SkPaint paint;
-    paint.setColor(cursorColor_.toARGB());
+    paint.setColor(_cursorColor.toARGB());
     paint.setStyle(SkPaint::kFill_Style);
     
     canvas->drawRect(cursorRect, paint);
@@ -1320,26 +1320,26 @@ void TextRenderer::drawCursor(SkCanvas* canvas, float x, float y) const {
 
 SkRect TextRenderer::getCursorRect() const {
     // Check if cache is valid
-    if (cachedCursorRect_ && 
-        cachedCursorPosition_ == selectionFocus_ && 
-        cachedCursorAffinity_ == cursorAffinityDownstream_) {
-        return *cachedCursorRect_;
+    if (_cachedCursorRect && 
+        _cachedCursorPosition == _selectionFocus && 
+        _cachedCursorAffinity == _cursorAffinityDownstream) {
+        return *_cachedCursorRect;
     }
     
     // Cache miss - compute cursor rect
     rebuildParagraphIfNeeded();
-    if (!paragraph_) {
-        cachedCursorRect_ = SkRect::MakeEmpty();
-        return *cachedCursorRect_;
+    if (!_paragraph) {
+        _cachedCursorRect = SkRect::MakeEmpty();
+        return *_cachedCursorRect;
     }
     layoutIfNeeded();
 
     // If cursor is right after a newline, place it at the start of the next line.
-    if (selectionFocus_ > 0 && selectionFocus_ <= static_cast<int>(text_.length()) &&
-        text_[selectionFocus_ - 1] == u'\n') {
+    if (_selectionFocus > 0 && _selectionFocus <= static_cast<int>(_text.length()) &&
+        _text[_selectionFocus - 1] == u'\n') {
         std::vector<LineMetrics> lineMetrics;
-        paragraph_->getLineMetrics(lineMetrics);
-        int lineIndex = getLineIndexForPosition(selectionFocus_);
+        _paragraph->getLineMetrics(lineMetrics);
+        int lineIndex = getLineIndexForPosition(_selectionFocus);
         if (!lineMetrics.empty() && lineIndex >= 0 && lineIndex < static_cast<int>(lineMetrics.size())) {
             const auto& line = lineMetrics[static_cast<size_t>(lineIndex)];
             float top = static_cast<float>(line.fBaseline - line.fAscent);
@@ -1348,24 +1348,24 @@ SkRect TextRenderer::getCursorRect() const {
                 height = static_cast<float>(line.fHeight);
             }
             float left = static_cast<float>(line.fLeft);
-            cachedCursorRect_ = SkRect::MakeXYWH(left, top, kCursorWidth, height);
-            cachedCursorPosition_ = selectionFocus_;
-            cachedCursorAffinity_ = cursorAffinityDownstream_;
-            return *cachedCursorRect_;
+            _cachedCursorRect = SkRect::MakeXYWH(left, top, kCursorWidth, height);
+            _cachedCursorPosition = _selectionFocus;
+            _cachedCursorAffinity = _cursorAffinityDownstream;
+            return *_cachedCursorRect;
         }
     }
     
-    int textLen = static_cast<int>(text_.length());
+    int textLen = static_cast<int>(_text.length());
     if (textLen > 0) {
-        int anchorIndex = selectionFocus_;
-        bool useLeadingEdge = cursorAffinityDownstream_;
-        if (cursorAffinityDownstream_) {
+        int anchorIndex = _selectionFocus;
+        bool useLeadingEdge = _cursorAffinityDownstream;
+        if (_cursorAffinityDownstream) {
             if (anchorIndex >= textLen) {
                 anchorIndex = textLen - 1;
                 useLeadingEdge = false; // end of text -> use trailing edge
             }
         } else {
-            anchorIndex = selectionFocus_ - 1;
+            anchorIndex = _selectionFocus - 1;
             useLeadingEdge = false;
             if (anchorIndex < 0) {
                 anchorIndex = 0;
@@ -1374,8 +1374,8 @@ SkRect TextRenderer::getCursorRect() const {
         }
 
         Paragraph::GlyphInfo info;
-        if (paragraph_->getGlyphInfoAtUTF16Offset(static_cast<size_t>(anchorIndex), &info)) {
-            auto boxes = paragraph_->getRectsForRange(
+        if (_paragraph->getGlyphInfoAtUTF16Offset(static_cast<size_t>(anchorIndex), &info)) {
+            auto boxes = _paragraph->getRectsForRange(
                 info.fGraphemeClusterTextRange.start,
                 info.fGraphemeClusterTextRange.end,
                 RectHeightStyle::kTight,
@@ -1388,89 +1388,89 @@ SkRect TextRenderer::getCursorRect() const {
                 float cursorX = useLeadingEdge
                     ? (isRtl ? rect.right() : rect.left())
                     : (isRtl ? rect.left() : rect.right());
-                cachedCursorRect_ = SkRect::MakeXYWH(cursorX, rect.top(), kCursorWidth, rect.height());
-                cachedCursorPosition_ = selectionFocus_;
-                cachedCursorAffinity_ = cursorAffinityDownstream_;
-                return *cachedCursorRect_;
+                _cachedCursorRect = SkRect::MakeXYWH(cursorX, rect.top(), kCursorWidth, rect.height());
+                _cachedCursorPosition = _selectionFocus;
+                _cachedCursorAffinity = _cursorAffinityDownstream;
+                return *_cachedCursorRect;
             }
         }
     }
 
     // Fallback to previous logic if glyph info isn't available
-    if (selectionFocus_ > 0) {
-        int clusterStart = selectionFocus_ - 1;
-        int clusterEnd = selectionFocus_;
-        if (getGraphemeClusterRangeAt(selectionFocus_ - 1, &clusterStart, &clusterEnd)) {
-            auto boxes = paragraph_->getRectsForRange(
+    if (_selectionFocus > 0) {
+        int clusterStart = _selectionFocus - 1;
+        int clusterEnd = _selectionFocus;
+        if (getGraphemeClusterRangeAt(_selectionFocus - 1, &clusterStart, &clusterEnd)) {
+            auto boxes = _paragraph->getRectsForRange(
                 clusterStart, clusterEnd,
                 RectHeightStyle::kTight,
                 RectWidthStyle::kTight
             );
             if (!boxes.empty()) {
                 const auto& box = boxes[0].rect;
-                cachedCursorRect_ = SkRect::MakeXYWH(box.right(), box.top(), kCursorWidth, box.height());
-                cachedCursorPosition_ = selectionFocus_;
-                cachedCursorAffinity_ = cursorAffinityDownstream_;
-                return *cachedCursorRect_;
+                _cachedCursorRect = SkRect::MakeXYWH(box.right(), box.top(), kCursorWidth, box.height());
+                _cachedCursorPosition = _selectionFocus;
+                _cachedCursorAffinity = _cursorAffinityDownstream;
+                return *_cachedCursorRect;
             }
         }
 
-        auto boxes = paragraph_->getRectsForRange(
-            selectionFocus_ - 1, selectionFocus_,
+        auto boxes = _paragraph->getRectsForRange(
+            _selectionFocus - 1, _selectionFocus,
             RectHeightStyle::kTight,
             RectWidthStyle::kTight
         );
         if (!boxes.empty()) {
             const auto& box = boxes[0].rect;
-            cachedCursorRect_ = SkRect::MakeXYWH(box.right(), box.top(), kCursorWidth, box.height());
-            cachedCursorPosition_ = selectionFocus_;
-            cachedCursorAffinity_ = cursorAffinityDownstream_;
-            return *cachedCursorRect_;
+            _cachedCursorRect = SkRect::MakeXYWH(box.right(), box.top(), kCursorWidth, box.height());
+            _cachedCursorPosition = _selectionFocus;
+            _cachedCursorAffinity = _cursorAffinityDownstream;
+            return *_cachedCursorRect;
         }
     }
 
     // Cursor at position 0 - use the first character's height and left edge
-    if (selectionFocus_ == 0 && !text_.empty()) {
+    if (_selectionFocus == 0 && !_text.empty()) {
         int clusterStart = 0;
         int clusterEnd = 1;
         if (getGraphemeClusterRangeAt(0, &clusterStart, &clusterEnd)) {
-            auto boxes = paragraph_->getRectsForRange(
+            auto boxes = _paragraph->getRectsForRange(
                 clusterStart, clusterEnd,
                 RectHeightStyle::kTight,
                 RectWidthStyle::kTight
             );
             if (!boxes.empty()) {
                 const auto& box = boxes[0].rect;
-                cachedCursorRect_ = SkRect::MakeXYWH(box.left(), box.top(), kCursorWidth, box.height());
-                cachedCursorPosition_ = selectionFocus_;
-                cachedCursorAffinity_ = cursorAffinityDownstream_;
-                return *cachedCursorRect_;
+                _cachedCursorRect = SkRect::MakeXYWH(box.left(), box.top(), kCursorWidth, box.height());
+                _cachedCursorPosition = _selectionFocus;
+                _cachedCursorAffinity = _cursorAffinityDownstream;
+                return *_cachedCursorRect;
             }
         }
 
-        auto boxes = paragraph_->getRectsForRange(
+        auto boxes = _paragraph->getRectsForRange(
             0, 1,
             RectHeightStyle::kTight,
             RectWidthStyle::kTight
         );
         if (!boxes.empty()) {
             const auto& box = boxes[0].rect;
-            cachedCursorRect_ = SkRect::MakeXYWH(box.left(), box.top(), kCursorWidth, box.height());
-            cachedCursorPosition_ = selectionFocus_;
-            cachedCursorAffinity_ = cursorAffinityDownstream_;
-            return *cachedCursorRect_;
+            _cachedCursorRect = SkRect::MakeXYWH(box.left(), box.top(), kCursorWidth, box.height());
+            _cachedCursorPosition = _selectionFocus;
+            _cachedCursorAffinity = _cursorAffinityDownstream;
+            return *_cachedCursorRect;
         }
     }
     
     // Empty text - derive height from default font size
-    float height = paragraph_->getHeight();
+    float height = _paragraph->getHeight();
     if (height <= 0) {
         height = getDefaultCursorHeight();
     }
-    cachedCursorRect_ = SkRect::MakeXYWH(0, 0, kCursorWidth, height);
-    cachedCursorPosition_ = selectionFocus_;
-    cachedCursorAffinity_ = cursorAffinityDownstream_;
-    return *cachedCursorRect_;
+    _cachedCursorRect = SkRect::MakeXYWH(0, 0, kCursorWidth, height);
+    _cachedCursorPosition = _selectionFocus;
+    _cachedCursorAffinity = _cursorAffinityDownstream;
+    return *_cachedCursorRect;
 }
 
 } // namespace core

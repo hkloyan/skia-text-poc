@@ -43,3 +43,7 @@ __pycache__/
 
 # Emscripten cache (generated during build)
 third_party/skia/third_party/externals/emsdk/upstream/emscripten/cache/symbol_lists/
+
+# Test artifacts
+tests/public/
+tests/node_modules/

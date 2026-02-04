@@ -1,0 +1,19 @@
+{
+  "name": "skia-text-tests",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "setup": "./scripts/setup-test-assets.sh",
+    "postinstall": "npx playwright install chromium",
+    "pretest": "./scripts/setup-test-assets.sh",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui"
+  },
+  "devDependencies": {
+    "@vitest/browser": "^3.0.0",
+    "playwright": "^1.50.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  }
+}

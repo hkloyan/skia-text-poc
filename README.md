@@ -38,6 +38,9 @@ Try the web demo without building: **[hkloyan.github.io/skia-text-poc](https://h
     /ios                    # iOS demo app
       project.yml           # XcodeGen spec
       /SkiaTextPoc          # Swift source files
+  /tests                    # Unit tests (Vitest + Playwright)
+    text-renderer.test.ts   # TextRenderer tests
+    setup.ts                # Test setup (WASM + fonts)
   /assets
     /fonts                  # Google Fonts TTFs (Roboto, Playfair)
   /scripts
@@ -150,6 +153,30 @@ platform/ios/
 ├── SkiaRenderer.hh          # ObjC++ bridge header
 └── SkiaRenderer.mm          # ObjC++ bridge implementation
 ```
+
+## Testing
+
+Unit tests run in a headless browser using [Vitest](https://vitest.dev/) with [Playwright](https://playwright.dev/), testing the full WebGL rendering pipeline.
+
+### Run Tests Locally
+```bash
+./scripts/build_wasm.sh
+cd tests
+npm install
+npm test
+```
+
+### What's Tested
+- **Layout Metrics** - height, width, intrinsic widths, line count, wrapping
+- **Cursor Navigation** - left, right, up, down, word/line boundaries
+- **Text Editing** - insert, delete, backspace
+- **Selection** - create, extend, get selected text
+- **Text Styling** - rich text spans, apply/insert styles
+- **Grapheme Clusters** - emoji handling
+- **Multi-line** - cursor movement across lines
+
+### CI
+Tests run automatically on every push to `main` and on pull requests via GitHub Actions.
 
 ## Validation
 

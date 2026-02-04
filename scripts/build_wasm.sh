@@ -8,12 +8,18 @@ SKIA_LIBS="$PROJECT_ROOT/third_party/skia-libs/wasm"
 
 echo "Building WASM module..."
 
-# Source the same emsdk that Skia was built with
+# Use Skia's bundled emsdk for ABI compatibility, or fall back to PATH (CI)
+# Version is defined in third_party/skia/bin/activate-emsdk
 SKIA_EMSDK="$SKIA_DIR/third_party/externals/emsdk"
 if [ -f "$SKIA_EMSDK/emsdk_env.sh" ]; then
     source "$SKIA_EMSDK/emsdk_env.sh"
+elif command -v em++ &> /dev/null; then
+    # emsdk already in PATH (e.g., CI with setup-emsdk action)
+    echo "Using em++ from PATH: $(which em++)"
 else
-    source "$HOME/repos/tools/emsdk/emsdk_env.sh"
+    echo "Error: Emscripten not found."
+    echo "Run ./scripts/sync_skia_deps.sh to install Skia's bundled emsdk."
+    exit 1
 fi
 
 cd "$PROJECT_ROOT"

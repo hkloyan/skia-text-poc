@@ -40,7 +40,12 @@ em++ \
   -I "$SKIA_DIR/modules/skunicode/include" \
   -DSK_GANESH \
   -DSK_GL \
-  src/text_renderer.cpp \
+  src/types.cpp \
+  src/text_encoding.cpp \
+  src/text_document.cpp \
+  src/text_layout.cpp \
+  src/text_drawing.cpp \
+  src/text_editor.cpp \
   src/font_manager.cpp \
   platform/web/bindings.cpp \
   "$SKIA_LIBS/libskparagraph.a" \

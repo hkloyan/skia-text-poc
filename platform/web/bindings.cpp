@@ -3,7 +3,7 @@
 #include <emscripten/html5.h>
 #include <GLES3/gl3.h>
 
-#include "core/text_renderer.hpp"
+#include "core/text_editor.hpp"
 #include "core/font_manager.hpp"
 
 #include "include/core/SkSurface.h"
@@ -20,52 +20,11 @@
 using namespace core;
 using namespace emscripten;
 
-// Global state for the PoC
+// Global state
 static sk_sp<GrDirectContext> grContext;
 static sk_sp<SkSurface> surface;
-static std::unique_ptr<TextRenderer> textRenderer;
+static std::unique_ptr<TextEditor> textEditor;
 static EMSCRIPTEN_WEBGL_CONTEXT_HANDLE webglContext = 0;
-
-// Helper to construct TextStyle from parameters
-static TextStyle makeTextStyle(const std::string& fontFamily, float fontSize, uint32_t color,
-                               int fontWeight, bool italic, bool underline,
-                               float letterSpacing, float wordSpacing,
-                               uint32_t backgroundColor, bool hasBackground,
-                               uint32_t shadowColor, float shadowOffsetX, float shadowOffsetY,
-                               float shadowBlurSigma, bool hasShadow) {
-    TextStyle style;
-    style.fontFamily = fontFamily;
-    style.fontSize = fontSize;
-    style.color = Color::fromARGB(color);
-    style.fontWeight = fontWeight;
-    style.italic = italic;
-    style.underline = underline;
-    style.letterSpacing = letterSpacing;
-    style.wordSpacing = wordSpacing;
-    style.hasBackground = hasBackground;
-    style.backgroundColor = Color::fromARGB(backgroundColor);
-    style.hasShadow = hasShadow;
-    style.shadow.color = Color::fromARGB(shadowColor);
-    style.shadow.offsetX = shadowOffsetX;
-    style.shadow.offsetY = shadowOffsetY;
-    style.shadow.blurSigma = shadowBlurSigma;
-    return style;
-}
-
-// Helper to construct StyledSpan from parameters
-static StyledSpan makeStyledSpan(const std::string& text, const std::string& fontFamily, float fontSize,
-                                 uint32_t color, int fontWeight, bool italic, bool underline,
-                                 float letterSpacing, float wordSpacing,
-                                 uint32_t backgroundColor, bool hasBackground,
-                                 uint32_t shadowColor, float shadowOffsetX, float shadowOffsetY,
-                                 float shadowBlurSigma, bool hasShadow) {
-    StyledSpan span;
-    span.text = text;
-    span.style = makeTextStyle(fontFamily, fontSize, color, fontWeight, italic, underline,
-                               letterSpacing, wordSpacing, backgroundColor, hasBackground,
-                               shadowColor, shadowOffsetX, shadowOffsetY, shadowBlurSigma, hasShadow);
-    return span;
-}
 
 bool initSkia(int width, int height) {
     // Create WebGL2 context using Emscripten APIs
@@ -135,7 +94,7 @@ bool initSkia(int width, int height) {
 }
 
 void destroySkia() {
-    textRenderer.reset();
+    textEditor.reset();
     surface.reset();
     grContext.reset();
     if (webglContext > 0) {
@@ -152,13 +111,18 @@ void registerFont(const std::string& name, uintptr_t dataPtr, size_t dataSize) {
     FontManager::instance().registerFont(name, skData);
 }
 
+void createTextEditor() {
+    textEditor = std::make_unique<TextEditor>();
+}
+
+// Backward compatibility alias
 void createTextRenderer() {
-    textRenderer = std::make_unique<TextRenderer>();
+    createTextEditor();
 }
 
 void setScale(float scale) {
-    if (textRenderer) {
-        textRenderer->setScale(scale);
+    if (textEditor) {
+        textEditor->setScale(scale);
     }
 }
 
@@ -166,10 +130,10 @@ void setText(const std::string& text, const std::string& fontFamily,
              float fontSize, uint32_t color, int fontWeight, bool italic, bool underline,
              float letterSpacing, float wordSpacing, uint32_t backgroundColor, bool hasBackground,
              uint32_t shadowColor, float shadowOffsetX, float shadowOffsetY, float shadowBlurSigma, bool hasShadow) {
-    if (textRenderer) {
-        textRenderer->setText(text, makeTextStyle(fontFamily, fontSize, color, fontWeight, italic, underline,
-                                                  letterSpacing, wordSpacing, backgroundColor, hasBackground,
-                                                  shadowColor, shadowOffsetX, shadowOffsetY, shadowBlurSigma, hasShadow));
+    if (textEditor) {
+        textEditor->setText(text, TextEditor::makeStyle(fontFamily, fontSize, color, fontWeight, italic, underline,
+                                                        letterSpacing, wordSpacing, backgroundColor, hasBackground,
+                                                        shadowColor, shadowOffsetX, shadowOffsetY, shadowBlurSigma, hasShadow));
     }
 }
 
@@ -180,11 +144,8 @@ void setTextSimple(const std::string& text, const std::string& fontFamily,
             0.0f, 0.0f, 0x00000000, false, 0xFF000000, 0.0f, 0.0f, 0.0f, false);
 }
 
-// Add a styled span for rich text
-static std::vector<StyledSpan> richTextSpans;
-
 void beginRichText() {
-    richTextSpans.clear();
+    if (textEditor) textEditor->beginRichText();
 }
 
 void addStyledSpan(const std::string& text, const std::string& fontFamily,
@@ -192,9 +153,11 @@ void addStyledSpan(const std::string& text, const std::string& fontFamily,
                    bool italic, bool underline, float letterSpacing, float wordSpacing,
                    uint32_t backgroundColor, bool hasBackground,
                    uint32_t shadowColor, float shadowOffsetX, float shadowOffsetY, float shadowBlurSigma, bool hasShadow) {
-    richTextSpans.push_back(makeStyledSpan(text, fontFamily, fontSize, color, fontWeight, italic, underline,
-                                           letterSpacing, wordSpacing, backgroundColor, hasBackground,
-                                           shadowColor, shadowOffsetX, shadowOffsetY, shadowBlurSigma, hasShadow));
+    if (textEditor) {
+        textEditor->addStyledSpan(TextEditor::makeSpan(text, fontFamily, fontSize, color, fontWeight, italic, underline,
+                                                       letterSpacing, wordSpacing, backgroundColor, hasBackground,
+                                                       shadowColor, shadowOffsetX, shadowOffsetY, shadowBlurSigma, hasShadow));
+    }
 }
 
 // Simple rich text span (basic style only)
@@ -205,28 +168,26 @@ void addStyledSpanSimple(const std::string& text, const std::string& fontFamily,
 }
 
 void endRichText() {
-    if (textRenderer && !richTextSpans.empty()) {
-        textRenderer->setRichText(richTextSpans);
-    }
+    if (textEditor) textEditor->endRichText();
 }
 
 void setMaxWidth(float maxWidth) {
-    if (textRenderer) {
-        textRenderer->setMaxWidth(maxWidth);
+    if (textEditor) {
+        textEditor->setMaxWidth(maxWidth);
     }
 }
 
 void layoutIfNeeded() {
-    if (textRenderer) {
-        textRenderer->layoutIfNeeded();
+    if (textEditor) {
+        textEditor->layoutIfNeeded();
     }
 }
 
 void render(float x, float y, bool showCursor) {
-    if (surface && textRenderer) {
+    if (surface && textEditor) {
         SkCanvas* canvas = surface->getCanvas();
         canvas->clear(SK_ColorWHITE);
-        textRenderer->render(canvas, x, y, showCursor);
+        textEditor->render(canvas, x, y, showCursor);
         grContext->flush();
     }
 }
@@ -234,73 +195,73 @@ void render(float x, float y, bool showCursor) {
 // === Layout metrics ===
 
 float getHeight() {
-    return textRenderer ? textRenderer->getHeight() : 0;
+    return textEditor ? textEditor->getHeight() : 0;
 }
 
 float getWidth() {
-    return textRenderer ? textRenderer->getWidth() : 0;
+    return textEditor ? textEditor->getWidth() : 0;
 }
 
 int getLineCount() {
-    return textRenderer ? textRenderer->getLineCount() : 0;
+    return textEditor ? textEditor->getLineCount() : 0;
 }
 
 float getMaxIntrinsicWidth() {
-    return textRenderer ? textRenderer->getMaxIntrinsicWidth() : 0;
+    return textEditor ? textEditor->getMaxIntrinsicWidth() : 0;
 }
 
 float getMinIntrinsicWidth() {
-    return textRenderer ? textRenderer->getMinIntrinsicWidth() : 0;
+    return textEditor ? textEditor->getMinIntrinsicWidth() : 0;
 }
 
 int getTextLength() {
-    return textRenderer ? textRenderer->getTextLength() : 0;
+    return textEditor ? textEditor->getTextLength() : 0;
 }
 
 // === Text Content ===
 
 std::string getText() {
-    return textRenderer ? textRenderer->getText() : "";
+    return textEditor ? textEditor->getText() : "";
 }
 
 std::string getSelectedText() {
-    return textRenderer ? textRenderer->getSelectedText() : "";
+    return textEditor ? textEditor->getSelectedText() : "";
 }
 
 // === Text Editing ===
 
 void insertText(const std::string& text) {
-    if (textRenderer) textRenderer->insertText(text);
+    if (textEditor) textEditor->insertText(text);
 }
 
 void deleteBackward() {
-    if (textRenderer) textRenderer->deleteBackward();
+    if (textEditor) textEditor->deleteBackward();
 }
 
 void deleteForward() {
-    if (textRenderer) textRenderer->deleteForward();
+    if (textEditor) textEditor->deleteForward();
 }
 
 void deleteWordBackward() {
-    if (textRenderer) textRenderer->deleteWordBackward();
+    if (textEditor) textEditor->deleteWordBackward();
 }
 
 void deleteWordForward() {
-    if (textRenderer) textRenderer->deleteWordForward();
+    if (textEditor) textEditor->deleteWordForward();
 }
 
 void deleteSelection() {
-    if (textRenderer) textRenderer->deleteSelection();
+    if (textEditor) textEditor->deleteSelection();
 }
 
 void insertStyledText(const std::string& text, const std::string& fontFamily, float fontSize,
                       uint32_t color, int fontWeight, bool italic, bool underline,
                       float letterSpacing, float wordSpacing, uint32_t backgroundColor, bool hasBackground,
                       uint32_t shadowColor, float shadowOffsetX, float shadowOffsetY, float shadowBlurSigma, bool hasShadow) {
-    if (textRenderer) {
-        textRenderer->insertStyledText(makeStyledSpan(text, fontFamily, fontSize, color, fontWeight, italic, underline,
-                                                      letterSpacing, wordSpacing, backgroundColor, hasBackground,
-                                                      shadowColor, shadowOffsetX, shadowOffsetY, shadowBlurSigma, hasShadow));
+    if (textEditor) {
+        textEditor->insertStyledText(TextEditor::makeSpan(text, fontFamily, fontSize, color, fontWeight, italic, underline,
+                                                          letterSpacing, wordSpacing, backgroundColor, hasBackground,
+                                                          shadowColor, shadowOffsetX, shadowOffsetY, shadowBlurSigma, hasShadow));
     }
 }
 
@@ -315,10 +276,10 @@ void applyStyleToSelection(const std::string& fontFamily, float fontSize,
                            uint32_t color, int fontWeight, bool italic, bool underline,
                            float letterSpacing, float wordSpacing, uint32_t backgroundColor, bool hasBackground,
                            uint32_t shadowColor, float shadowOffsetX, float shadowOffsetY, float shadowBlurSigma, bool hasShadow) {
-    if (textRenderer) {
-        textRenderer->applyStyleToSelection(makeTextStyle(fontFamily, fontSize, color, fontWeight, italic, underline,
-                                                          letterSpacing, wordSpacing, backgroundColor, hasBackground,
-                                                          shadowColor, shadowOffsetX, shadowOffsetY, shadowBlurSigma, hasShadow));
+    if (textEditor) {
+        textEditor->applyStyleToSelection(TextEditor::makeStyle(fontFamily, fontSize, color, fontWeight, italic, underline,
+                                                                letterSpacing, wordSpacing, backgroundColor, hasBackground,
+                                                                shadowColor, shadowOffsetX, shadowOffsetY, shadowBlurSigma, hasShadow));
     }
 }
 
@@ -330,8 +291,8 @@ void applyStyleToSelectionSimple(const std::string& fontFamily, float fontSize,
 }
 
 val getStyleAtCursor() {
-    if (!textRenderer) return val::null();
-    TextStyle style = textRenderer->getStyleAtCursor();
+    if (!textEditor) return val::null();
+    TextStyle style = textEditor->getStyleAtCursor();
     val result = val::object();
     result.set("fontFamily", style.fontFamily);
     result.set("fontSize", style.fontSize);
@@ -354,80 +315,80 @@ val getStyleAtCursor() {
 // === Cursor Navigation ===
 
 void moveCursorLeft(bool extendSelection) {
-    if (textRenderer) textRenderer->moveCursorLeft(extendSelection);
+    if (textEditor) textEditor->moveCursorLeft(extendSelection);
 }
 
 void moveCursorRight(bool extendSelection) {
-    if (textRenderer) textRenderer->moveCursorRight(extendSelection);
+    if (textEditor) textEditor->moveCursorRight(extendSelection);
 }
 
 void moveCursorUp(bool extendSelection) {
-    if (textRenderer) textRenderer->moveCursorUp(extendSelection);
+    if (textEditor) textEditor->moveCursorUp(extendSelection);
 }
 
 void moveCursorDown(bool extendSelection) {
-    if (textRenderer) textRenderer->moveCursorDown(extendSelection);
+    if (textEditor) textEditor->moveCursorDown(extendSelection);
 }
 
 void moveCursorToWordStart(bool extendSelection) {
-    if (textRenderer) textRenderer->moveCursorToWordStart(extendSelection);
+    if (textEditor) textEditor->moveCursorToWordStart(extendSelection);
 }
 
 void moveCursorToWordEnd(bool extendSelection) {
-    if (textRenderer) textRenderer->moveCursorToWordEnd(extendSelection);
+    if (textEditor) textEditor->moveCursorToWordEnd(extendSelection);
 }
 
 void moveCursorToLineStart(bool extendSelection) {
-    if (textRenderer) textRenderer->moveCursorToLineStart(extendSelection);
+    if (textEditor) textEditor->moveCursorToLineStart(extendSelection);
 }
 
 void moveCursorToLineEnd(bool extendSelection) {
-    if (textRenderer) textRenderer->moveCursorToLineEnd(extendSelection);
+    if (textEditor) textEditor->moveCursorToLineEnd(extendSelection);
 }
 
 void moveCursorToDocumentStart(bool extendSelection) {
-    if (textRenderer) textRenderer->moveCursorToDocumentStart(extendSelection);
+    if (textEditor) textEditor->moveCursorToDocumentStart(extendSelection);
 }
 
 void moveCursorToDocumentEnd(bool extendSelection) {
-    if (textRenderer) textRenderer->moveCursorToDocumentEnd(extendSelection);
+    if (textEditor) textEditor->moveCursorToDocumentEnd(extendSelection);
 }
 
 void selectAll() {
-    if (textRenderer) textRenderer->selectAll();
+    if (textEditor) textEditor->selectAll();
 }
 
 // === Cursor ===
 
 void setCursorPosition(int position) {
-    if (textRenderer) textRenderer->setCursorPosition(position);
+    if (textEditor) textEditor->setCursorPosition(position);
 }
 
 int getCursorPosition() {
-    return textRenderer ? textRenderer->getCursorPosition() : 0;
+    return textEditor ? textEditor->getCursorPosition() : 0;
 }
 
 void setCursorPositionAtCoordinate(float x, float y) {
-    if (textRenderer) textRenderer->setCursorPositionAtCoordinate(x, y);
+    if (textEditor) textEditor->setCursorPositionAtCoordinate(x, y);
 }
 
 // === Selection ===
 
 void setSelection(int start, int end) {
-    if (textRenderer) textRenderer->setSelection(start, end);
+    if (textEditor) textEditor->setSelection(start, end);
 }
 
 void clearSelection() {
-    if (textRenderer) textRenderer->clearSelection();
+    if (textEditor) textEditor->clearSelection();
 }
 
 bool hasSelection() {
-    return textRenderer ? textRenderer->hasSelection() : false;
+    return textEditor ? textEditor->hasSelection() : false;
 }
 
 val getSelection() {
-    if (!textRenderer) return val::null();
-    auto [start, end] = textRenderer->getSelection();
+    if (!textEditor) return val::null();
+    auto [start, end] = textEditor->getSelection();
     val result = val::object();
     result.set("start", start);
     result.set("end", end);
@@ -435,68 +396,68 @@ val getSelection() {
 }
 
 void setWordSelectionAtCoordinate(float x, float y) {
-    if (textRenderer) textRenderer->setWordSelectionAtCoordinate(x, y);
+    if (textEditor) textEditor->setWordSelectionAtCoordinate(x, y);
 }
 
 void setLineSelectionAtCoordinate(float x, float y) {
-    if (textRenderer) textRenderer->setLineSelectionAtCoordinate(x, y);
+    if (textEditor) textEditor->setLineSelectionAtCoordinate(x, y);
 }
 
 void beginSelectionAtCoordinate(float x, float y) {
-    if (textRenderer) textRenderer->beginSelectionAtCoordinate(x, y);
+    if (textEditor) textEditor->beginSelectionAtCoordinate(x, y);
 }
 
 void extendSelectionToCoordinate(float x, float y) {
-    if (textRenderer) textRenderer->extendSelectionToCoordinate(x, y);
+    if (textEditor) textEditor->extendSelectionToCoordinate(x, y);
 }
 
 // === Colors ===
 
 void setCursorColor(uint32_t color) {
-    if (textRenderer) textRenderer->setCursorColor(Color::fromARGB(color));
+    if (textEditor) textEditor->setCursorColor(Color::fromARGB(color));
 }
 
 uint32_t getCursorColor() {
-    return textRenderer ? textRenderer->getCursorColor().toARGB() : 0xFF000000;
+    return textEditor ? textEditor->getCursorColor().toARGB() : 0xFF000000;
 }
 
 void setSelectionColor(uint32_t color) {
-    if (textRenderer) textRenderer->setSelectionColor(Color::fromARGB(color));
+    if (textEditor) textEditor->setSelectionColor(Color::fromARGB(color));
 }
 
 uint32_t getSelectionColor() {
-    return textRenderer ? textRenderer->getSelectionColor().toARGB() : 0x400000FF;
+    return textEditor ? textEditor->getSelectionColor().toARGB() : 0x400000FF;
 }
 
 // === Paragraph-level style ===
 
 void setTextAlignment(int alignment) {
-    if (textRenderer) {
-        textRenderer->setTextAlignment(static_cast<TextAlignment>(alignment));
+    if (textEditor) {
+        textEditor->setTextAlignment(static_cast<TextAlignment>(alignment));
     }
 }
 
 void setMaxLines(int maxLines) {
-    if (textRenderer) {
-        textRenderer->setMaxLines(maxLines);
+    if (textEditor) {
+        textEditor->setMaxLines(maxLines);
     }
 }
 
 void setEllipsis(const std::string& ellipsis) {
-    if (textRenderer) {
-        textRenderer->setEllipsis(ellipsis);
+    if (textEditor) {
+        textEditor->setEllipsis(ellipsis);
     }
 }
 
 void setLineHeight(float height) {
-    if (textRenderer) {
-        textRenderer->setLineHeight(height);
+    if (textEditor) {
+        textEditor->setLineHeight(height);
     }
 }
 
 void setStrutStyle(const std::string& fontFamily, float fontSize, float height,
                    float leading, bool forceHeight, bool heightOverride, bool halfLeading) {
-    if (textRenderer) {
+    if (textEditor) {
         TextStrutStyle strut;
         strut.enabled = true;
         strut.fontFamily = fontFamily;
@@ -506,29 +467,29 @@ void setStrutStyle(const std::string& fontFamily, float fontSize, float height,
         strut.forceHeight = forceHeight;
         strut.heightOverride = heightOverride;
         strut.halfLeading = halfLeading;
-        textRenderer->setStrutStyle(strut);
+        textEditor->setStrutStyle(strut);
     }
 }
 
 void clearStrutStyle() {
-    if (textRenderer) {
-        textRenderer->clearStrutStyle();
+    if (textEditor) {
+        textEditor->clearStrutStyle();
     }
 }
 
 // === Query methods ===
 
 int getGlyphPositionAtCoordinate(float x, float y) {
-    if (!textRenderer) return -1;
-    auto pos = textRenderer->getGlyphPositionAtCoordinate(x, y);
+    if (!textEditor) return -1;
+    auto pos = textEditor->getGlyphPositionAtCoordinate(x, y);
     return pos.value_or(-1);
 }
 
 val getRectsForRange(int start, int end) {
     val result = val::array();
-    if (!textRenderer) return result;
+    if (!textEditor) return result;
     
-    auto rects = textRenderer->getRectsForRange(start, end);
+    auto rects = textEditor->getRectsForRange(start, end);
     for (size_t i = 0; i < rects.size(); ++i) {
         val rect = val::object();
         rect.set("left", rects[i].left());
@@ -541,8 +502,8 @@ val getRectsForRange(int start, int end) {
 }
 
 val getWordBoundary(int position) {
-    if (!textRenderer) return val::null();
-    auto boundary = textRenderer->getWordBoundary(position);
+    if (!textEditor) return val::null();
+    auto boundary = textEditor->getWordBoundary(position);
     if (!boundary) return val::null();
     val result = val::object();
     result.set("start", boundary->first);
@@ -551,8 +512,8 @@ val getWordBoundary(int position) {
 }
 
 val getLineBoundary(int position) {
-    if (!textRenderer) return val::null();
-    auto boundary = textRenderer->getLineBoundary(position);
+    if (!textEditor) return val::null();
+    auto boundary = textEditor->getLineBoundary(position);
     if (!boundary) return val::null();
     val result = val::object();
     result.set("start", boundary->first);
@@ -564,7 +525,8 @@ EMSCRIPTEN_BINDINGS(skia_text) {
     function("initSkia", &initSkia);
     function("destroySkia", &destroySkia);
     function("registerFont", &registerFont, allow_raw_pointers());
-    function("createTextRenderer", &createTextRenderer);
+    function("createTextEditor", &createTextEditor);
+    function("createTextRenderer", &createTextRenderer);  // Backward compat alias
     function("setScale", &setScale);
     function("setText", &setText);
     function("setTextSimple", &setTextSimple);

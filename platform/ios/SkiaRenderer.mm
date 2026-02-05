@@ -1,5 +1,5 @@
 #import "SkiaRenderer.hh"
-#include "core/text_renderer.hpp"
+#include "core/text_editor.hpp"
 #include "core/font_manager.hpp"
 
 #include "include/core/SkCanvas.h"
@@ -16,53 +16,11 @@
 
 using namespace core;
 
-// Helper to construct TextStyle from ObjC parameters
-static TextStyle makeTextStyle(NSString* fontFamily, float fontSize, uint32_t color,
-                               int fontWeight, BOOL italic, BOOL underline,
-                               float letterSpacing, float wordSpacing,
-                               uint32_t backgroundColor, BOOL hasBackground,
-                               uint32_t shadowColor, float shadowOffsetX, float shadowOffsetY,
-                               float shadowBlurSigma, BOOL hasShadow) {
-    TextStyle style;
-    style.fontFamily = [fontFamily UTF8String];
-    style.fontSize = fontSize;
-    style.color = Color::fromARGB(color);
-    style.fontWeight = fontWeight;
-    style.italic = italic;
-    style.underline = underline;
-    style.letterSpacing = letterSpacing;
-    style.wordSpacing = wordSpacing;
-    style.hasBackground = hasBackground;
-    style.backgroundColor = Color::fromARGB(backgroundColor);
-    style.hasShadow = hasShadow;
-    style.shadow.color = Color::fromARGB(shadowColor);
-    style.shadow.offsetX = shadowOffsetX;
-    style.shadow.offsetY = shadowOffsetY;
-    style.shadow.blurSigma = shadowBlurSigma;
-    return style;
-}
-
-// Helper to construct StyledSpan from ObjC parameters
-static StyledSpan makeStyledSpan(NSString* text, NSString* fontFamily, float fontSize, uint32_t color,
-                                  int fontWeight, BOOL italic, BOOL underline,
-                                  float letterSpacing, float wordSpacing,
-                                  uint32_t backgroundColor, BOOL hasBackground,
-                                  uint32_t shadowColor, float shadowOffsetX, float shadowOffsetY,
-                                  float shadowBlurSigma, BOOL hasShadow) {
-    StyledSpan span;
-    span.text = [text UTF8String];
-    span.style = makeTextStyle(fontFamily, fontSize, color, fontWeight, italic, underline,
-                               letterSpacing, wordSpacing, backgroundColor, hasBackground,
-                               shadowColor, shadowOffsetX, shadowOffsetY, shadowBlurSigma, hasShadow);
-    return span;
-}
-
 @implementation SkiaRenderer {
     id<MTLDevice> _device;
     id<MTLCommandQueue> _commandQueue;
     sk_sp<GrDirectContext> _grContext;
-    std::unique_ptr<TextRenderer> _textRenderer;
-    std::vector<StyledSpan> _richTextSpans;
+    std::unique_ptr<TextEditor> _textEditor;
     float _renderX;
     float _renderY;
     BOOL _showCursor;
@@ -86,7 +44,7 @@ static StyledSpan makeStyledSpan(NSString* text, NSString* fontFamily, float fon
             NSLog(@"ERROR: Failed to create Skia GrDirectContext");
         }
         
-        _textRenderer = std::make_unique<TextRenderer>();
+        _textEditor = std::make_unique<TextEditor>();
         _renderX = 50.0f;  // Default position
         _renderY = 50.0f;
     }
@@ -188,14 +146,14 @@ static StyledSpan makeStyledSpan(NSString* text, NSString* fontFamily, float fon
     shadowOffsetY:(float)shadowOffsetY
   shadowBlurSigma:(float)shadowBlurSigma
        hasShadow:(BOOL)hasShadow {
-    TextStyle style = makeTextStyle(fontFamily, fontSize, color, fontWeight, italic, underline,
-                                    letterSpacing, wordSpacing, backgroundColor, hasBackground,
-                                    shadowColor, shadowOffsetX, shadowOffsetY, shadowBlurSigma, hasShadow);
-    _textRenderer->setText([text UTF8String], style);
+    _textEditor->setText([text UTF8String], 
+                         TextEditor::makeStyle([fontFamily UTF8String], fontSize, color, fontWeight, italic, underline,
+                                               letterSpacing, wordSpacing, backgroundColor, hasBackground,
+                                               shadowColor, shadowOffsetX, shadowOffsetY, shadowBlurSigma, hasShadow));
 }
 
 - (void)beginRichText {
-    _richTextSpans.clear();
+    _textEditor->beginRichText();
 }
 
 - (void)addStyledSpan:(NSString*)text
@@ -239,47 +197,46 @@ static StyledSpan makeStyledSpan(NSString* text, NSString* fontFamily, float fon
        shadowOffsetY:(float)shadowOffsetY
      shadowBlurSigma:(float)shadowBlurSigma
           hasShadow:(BOOL)hasShadow {
-    _richTextSpans.push_back(makeStyledSpan(text, fontFamily, fontSize, color, fontWeight, italic, underline,
-                                            letterSpacing, wordSpacing, backgroundColor, hasBackground,
-                                            shadowColor, shadowOffsetX, shadowOffsetY, shadowBlurSigma, hasShadow));
+    _textEditor->addStyledSpan(TextEditor::makeSpan([text UTF8String], [fontFamily UTF8String], fontSize, color, 
+                                                     fontWeight, italic, underline, letterSpacing, wordSpacing, 
+                                                     backgroundColor, hasBackground, shadowColor, shadowOffsetX, 
+                                                     shadowOffsetY, shadowBlurSigma, hasShadow));
 }
 
 - (void)endRichText {
-    if (!_richTextSpans.empty()) {
-        _textRenderer->setRichText(_richTextSpans);
-    }
+    _textEditor->endRichText();
 }
 
 - (void)setMaxWidth:(float)maxWidth {
-    _textRenderer->setMaxWidth(maxWidth);
+    _textEditor->setMaxWidth(maxWidth);
 }
 
 - (void)layoutIfNeeded {
-    _textRenderer->layoutIfNeeded();
+    _textEditor->layoutIfNeeded();
 }
 
 - (float)getHeight {
-    return _textRenderer->getHeight();
+    return _textEditor->getHeight();
 }
 
 - (float)getWidth {
-    return _textRenderer->getWidth();
+    return _textEditor->getWidth();
 }
 
 - (int)getLineCount {
-    return _textRenderer->getLineCount();
+    return _textEditor->getLineCount();
 }
 
 - (float)getMaxIntrinsicWidth {
-    return _textRenderer->getMaxIntrinsicWidth();
+    return _textEditor->getMaxIntrinsicWidth();
 }
 
 - (float)getMinIntrinsicWidth {
-    return _textRenderer->getMinIntrinsicWidth();
+    return _textEditor->getMinIntrinsicWidth();
 }
 
 - (int)getTextLength {
-    return _textRenderer->getTextLength();
+    return _textEditor->getTextLength();
 }
 
 - (void)setShowCursor:(BOOL)show {
@@ -287,43 +244,43 @@ static StyledSpan makeStyledSpan(NSString* text, NSString* fontFamily, float fon
 }
 
 - (void)setScale:(float)scale {
-    _textRenderer->setScale(scale);
+    _textEditor->setScale(scale);
 }
 
 #pragma mark - Text Content
 
 - (NSString*)getText {
-    return [NSString stringWithUTF8String:_textRenderer->getText().c_str()];
+    return [NSString stringWithUTF8String:_textEditor->getText().c_str()];
 }
 
 - (NSString*)getSelectedText {
-    return [NSString stringWithUTF8String:_textRenderer->getSelectedText().c_str()];
+    return [NSString stringWithUTF8String:_textEditor->getSelectedText().c_str()];
 }
 
 #pragma mark - Text Editing
 
 - (void)insertText:(NSString*)text {
-    _textRenderer->insertText([text UTF8String]);
+    _textEditor->insertText([text UTF8String]);
 }
 
 - (void)deleteBackward {
-    _textRenderer->deleteBackward();
+    _textEditor->deleteBackward();
 }
 
 - (void)deleteForward {
-    _textRenderer->deleteForward();
+    _textEditor->deleteForward();
 }
 
 - (void)deleteWordBackward {
-    _textRenderer->deleteWordBackward();
+    _textEditor->deleteWordBackward();
 }
 
 - (void)deleteWordForward {
-    _textRenderer->deleteWordForward();
+    _textEditor->deleteWordForward();
 }
 
 - (void)deleteSelection {
-    _textRenderer->deleteSelection();
+    _textEditor->deleteSelection();
 }
 
 - (void)insertStyledText:(NSString*)text
@@ -367,9 +324,10 @@ static StyledSpan makeStyledSpan(NSString* text, NSString* fontFamily, float fon
           shadowOffsetY:(float)shadowOffsetY
         shadowBlurSigma:(float)shadowBlurSigma
              hasShadow:(BOOL)hasShadow {
-    _textRenderer->insertStyledText(makeStyledSpan(text, fontFamily, fontSize, color, fontWeight, italic, underline,
-                                                   letterSpacing, wordSpacing, backgroundColor, hasBackground,
-                                                   shadowColor, shadowOffsetX, shadowOffsetY, shadowBlurSigma, hasShadow));
+    _textEditor->insertStyledText(TextEditor::makeSpan([text UTF8String], [fontFamily UTF8String], fontSize, color,
+                                                        fontWeight, italic, underline, letterSpacing, wordSpacing,
+                                                        backgroundColor, hasBackground, shadowColor, shadowOffsetX,
+                                                        shadowOffsetY, shadowBlurSigma, hasShadow));
 }
 
 #pragma mark - Text Styling
@@ -412,14 +370,14 @@ static StyledSpan makeStyledSpan(NSString* text, NSString* fontFamily, float fon
                              shadowOffsetY:(float)shadowOffsetY
                            shadowBlurSigma:(float)shadowBlurSigma
                                 hasShadow:(BOOL)hasShadow {
-    TextStyle style = makeTextStyle(fontFamily, fontSize, color, fontWeight, italic, underline,
-                                    letterSpacing, wordSpacing, backgroundColor, hasBackground,
-                                    shadowColor, shadowOffsetX, shadowOffsetY, shadowBlurSigma, hasShadow);
-    _textRenderer->applyStyleToSelection(style);
+    _textEditor->applyStyleToSelection(TextEditor::makeStyle([fontFamily UTF8String], fontSize, color, fontWeight,
+                                                              italic, underline, letterSpacing, wordSpacing,
+                                                              backgroundColor, hasBackground, shadowColor,
+                                                              shadowOffsetX, shadowOffsetY, shadowBlurSigma, hasShadow));
 }
 
 - (NSDictionary*)getStyleAtCursor {
-    TextStyle style = _textRenderer->getStyleAtCursor();
+    TextStyle style = _textEditor->getStyleAtCursor();
     return @{
         @"fontFamily": [NSString stringWithUTF8String:style.fontFamily.c_str()],
         @"fontSize": @(style.fontSize),
@@ -442,19 +400,19 @@ static StyledSpan makeStyledSpan(NSString* text, NSString* fontFamily, float fon
 #pragma mark - Paragraph Style
 
 - (void)setTextAlignment:(SkiaTextAlignment)alignment {
-    _textRenderer->setTextAlignment(static_cast<TextAlignment>(alignment));
+    _textEditor->setTextAlignment(static_cast<TextAlignment>(alignment));
 }
 
 - (void)setMaxLines:(int)maxLines {
-    _textRenderer->setMaxLines(maxLines);
+    _textEditor->setMaxLines(maxLines);
 }
 
 - (void)setEllipsis:(NSString*)ellipsis {
-    _textRenderer->setEllipsis([ellipsis UTF8String]);
+    _textEditor->setEllipsis([ellipsis UTF8String]);
 }
 
 - (void)setLineHeight:(float)height {
-    _textRenderer->setLineHeight(height);
+    _textEditor->setLineHeight(height);
 }
 
 - (void)setStrutStyleWithFontFamily:(NSString*)fontFamily
@@ -473,135 +431,135 @@ static StyledSpan makeStyledSpan(NSString* text, NSString* fontFamily, float fon
     strut.forceHeight = forceHeight;
     strut.heightOverride = heightOverride;
     strut.halfLeading = halfLeading;
-    _textRenderer->setStrutStyle(strut);
+    _textEditor->setStrutStyle(strut);
 }
 
 - (void)clearStrutStyle {
-    _textRenderer->clearStrutStyle();
+    _textEditor->clearStrutStyle();
 }
 
 #pragma mark - Cursor Navigation
 
 - (void)moveCursorLeft:(BOOL)extendSelection {
-    _textRenderer->moveCursorLeft(extendSelection);
+    _textEditor->moveCursorLeft(extendSelection);
 }
 
 - (void)moveCursorRight:(BOOL)extendSelection {
-    _textRenderer->moveCursorRight(extendSelection);
+    _textEditor->moveCursorRight(extendSelection);
 }
 
 - (void)moveCursorUp:(BOOL)extendSelection {
-    _textRenderer->moveCursorUp(extendSelection);
+    _textEditor->moveCursorUp(extendSelection);
 }
 
 - (void)moveCursorDown:(BOOL)extendSelection {
-    _textRenderer->moveCursorDown(extendSelection);
+    _textEditor->moveCursorDown(extendSelection);
 }
 
 - (void)moveCursorToWordStart:(BOOL)extendSelection {
-    _textRenderer->moveCursorToWordStart(extendSelection);
+    _textEditor->moveCursorToWordStart(extendSelection);
 }
 
 - (void)moveCursorToWordEnd:(BOOL)extendSelection {
-    _textRenderer->moveCursorToWordEnd(extendSelection);
+    _textEditor->moveCursorToWordEnd(extendSelection);
 }
 
 - (void)moveCursorToLineStart:(BOOL)extendSelection {
-    _textRenderer->moveCursorToLineStart(extendSelection);
+    _textEditor->moveCursorToLineStart(extendSelection);
 }
 
 - (void)moveCursorToLineEnd:(BOOL)extendSelection {
-    _textRenderer->moveCursorToLineEnd(extendSelection);
+    _textEditor->moveCursorToLineEnd(extendSelection);
 }
 
 - (void)moveCursorToDocumentStart:(BOOL)extendSelection {
-    _textRenderer->moveCursorToDocumentStart(extendSelection);
+    _textEditor->moveCursorToDocumentStart(extendSelection);
 }
 
 - (void)moveCursorToDocumentEnd:(BOOL)extendSelection {
-    _textRenderer->moveCursorToDocumentEnd(extendSelection);
+    _textEditor->moveCursorToDocumentEnd(extendSelection);
 }
 
 - (void)selectAll {
-    _textRenderer->selectAll();
+    _textEditor->selectAll();
 }
 
 #pragma mark - Cursor
 
 - (void)setCursorPosition:(int)position {
-    _textRenderer->setCursorPosition(position);
+    _textEditor->setCursorPosition(position);
 }
 
 - (int)getCursorPosition {
-    return _textRenderer->getCursorPosition();
+    return _textEditor->getCursorPosition();
 }
 
 - (void)setCursorPositionAtCoordinate:(float)x y:(float)y {
-    _textRenderer->setCursorPositionAtCoordinate(x, y);
+    _textEditor->setCursorPositionAtCoordinate(x, y);
 }
 
 #pragma mark - Selection
 
 - (void)setSelectionStart:(int)start end:(int)end {
-    _textRenderer->setSelection(start, end);
+    _textEditor->setSelection(start, end);
 }
 
 - (void)clearSelection {
-    _textRenderer->clearSelection();
+    _textEditor->clearSelection();
 }
 
 - (BOOL)hasSelection {
-    return _textRenderer->hasSelection();
+    return _textEditor->hasSelection();
 }
 
 - (int)getSelectionStart {
-    auto [start, end] = _textRenderer->getSelection();
+    auto [start, end] = _textEditor->getSelection();
     return start;
 }
 
 - (int)getSelectionEnd {
-    auto [start, end] = _textRenderer->getSelection();
+    auto [start, end] = _textEditor->getSelection();
     return end;
 }
 
 - (void)setWordSelectionAtCoordinate:(float)x y:(float)y {
-    _textRenderer->setWordSelectionAtCoordinate(x, y);
+    _textEditor->setWordSelectionAtCoordinate(x, y);
 }
 
 - (void)setLineSelectionAtCoordinate:(float)x y:(float)y {
-    _textRenderer->setLineSelectionAtCoordinate(x, y);
+    _textEditor->setLineSelectionAtCoordinate(x, y);
 }
 
 - (void)beginSelectionAtCoordinate:(float)x y:(float)y {
-    _textRenderer->beginSelectionAtCoordinate(x, y);
+    _textEditor->beginSelectionAtCoordinate(x, y);
 }
 
 - (void)extendSelectionToCoordinate:(float)x y:(float)y {
-    _textRenderer->extendSelectionToCoordinate(x, y);
+    _textEditor->extendSelectionToCoordinate(x, y);
 }
 
 #pragma mark - Colors
 
 - (void)setCursorColor:(uint32_t)color {
-    _textRenderer->setCursorColor(Color::fromARGB(color));
+    _textEditor->setCursorColor(Color::fromARGB(color));
 }
 
 - (uint32_t)getCursorColor {
-    return _textRenderer->getCursorColor().toARGB();
+    return _textEditor->getCursorColor().toARGB();
 }
 
 - (void)setSelectionColor:(uint32_t)color {
-    _textRenderer->setSelectionColor(Color::fromARGB(color));
+    _textEditor->setSelectionColor(Color::fromARGB(color));
 }
 
 - (uint32_t)getSelectionColor {
-    return _textRenderer->getSelectionColor().toARGB();
+    return _textEditor->getSelectionColor().toARGB();
 }
 
 #pragma mark - Query
 
 - (int)getGlyphPositionAtCoordinate:(float)x y:(float)y {
-    auto pos = _textRenderer->getGlyphPositionAtCoordinate(x, y);
+    auto pos = _textEditor->getGlyphPositionAtCoordinate(x, y);
     return pos.value_or(-1);
 }
 
@@ -653,7 +611,7 @@ static StyledSpan makeStyledSpan(NSString* text, NSString* fontFamily, float fon
     canvas->clear(SK_ColorWHITE);
     
     // Render text with cursor
-    _textRenderer->render(canvas, _renderX, _renderY, _showCursor);
+    _textEditor->render(canvas, _renderX, _renderY, _showCursor);
     
     // Submit to GPU
     _grContext->flush();

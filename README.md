@@ -20,11 +20,21 @@ Try the web demo without building: **[hkloyan.github.io/skia-text-poc](https://h
 ```
 /skia-text-poc
   /include/core             # Public C++ headers (namespace: core)
-    text_renderer.hpp
-    font_manager.hpp
+    types.hpp               # Shared types (Color, TextStyle, etc.)
+    text_encoding.hpp       # UTF-8/UTF-16 conversion
+    text_document.hpp       # Pure text/style data storage
+    text_layout.hpp         # Skia paragraph management
+    text_drawing.hpp        # Stateless drawing utilities
+    text_editor.hpp         # Public API facade
+    font_manager.hpp        # Font registration
   /src                      # C++ implementation
-    text_renderer.cpp
-    font_manager.cpp
+    types.cpp               # TextStyleBuilder
+    text_encoding.cpp       # Encoding (uses SkUnicode)
+    text_document.cpp       # Document mutations
+    text_layout.cpp         # Layout computation
+    text_drawing.cpp        # Cursor/selection rendering
+    text_editor.cpp         # Orchestrates all components
+    font_manager.cpp        # Font collection management
   /platform                 # Platform-specific bindings
     /web
       bindings.cpp          # Embind for JS interop
@@ -39,7 +49,7 @@ Try the web demo without building: **[hkloyan.github.io/skia-text-poc](https://h
       project.yml           # XcodeGen spec
       /SkiaTextPoc          # Swift source files
   /tests                    # Unit tests (Vitest + Playwright)
-    text-renderer.test.ts   # TextRenderer tests
+    text-renderer.test.ts   # Core behavior tested through WASM bindings
     setup.ts                # Test setup (WASM + fonts)
   /assets
     /fonts                  # Google Fonts TTFs (Roboto, Playfair)
@@ -187,35 +197,7 @@ Both demos render identical rich text with interactive editing. Compare:
 
 ## Architecture
 
-```
-┌───────────────────────────────────────────────────────────┐
-│                        Demo Apps                          │
-├───────────────────────────┬───────────────────────────────┤
-│  demos/web/               │  demos/ios/                   │
-│  index.html, main.js      │  ViewController, SkiaMetalView│
-└─────────────┬─────────────┴───────────────┬───────────────┘
-              │                             │
-              ▼                             ▼
-┌───────────────────────────────────────────────────────────┐
-│                    Platform Bindings                      │
-├───────────────────────────┬───────────────────────────────┤
-│  platform/web/            │  platform/ios/                │
-│  bindings.cpp (Embind)    │  SkiaRenderer.mm (ObjC++)     │
-└─────────────┬─────────────┴───────────────┬───────────────┘
-              │                             │
-              ▼                             ▼
-┌───────────────────────────────────────────────────────────┐
-│           Shared C++ Core (namespace: core)               │
-│                 include/core/ + src/                      │
-│             FontManager / TextRenderer                    │
-└─────────────────────────────┬─────────────────────────────┘
-                              │
-                              ▼
-┌───────────────────────────────────────────────────────────┐
-│                      Skia Libraries                       │
-│  libskia │ libskparagraph │ libskshaper │ libharfbuzz     │
-└───────────────────────────────────────────────────────────┘
-```
+Detailed design, data flow, invalidation rules, and component boundaries live in [`ARCHITECTURE.md`](ARCHITECTURE.md).
 
 ## Notes
 

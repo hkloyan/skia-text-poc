@@ -126,7 +126,7 @@ python3 -m http.server 8080
 ```
 
 ### Deploy to GitHub Pages
-The `deployment` branch is used for GitHub Pages. Pushing to `deployment` triggers a GitHub Action that deploys to Pages.
+Pushing to `main` automatically builds WASM and deploys to GitHub Pages.
 
 ## iOS Platform
 

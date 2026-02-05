@@ -3,10 +3,10 @@ name: Deploy Web Demo
 on:
   push:
     branches:
-      - deployment
+      - main
 
 jobs:
-  deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
     permissions:
       pages: write
@@ -16,10 +16,27 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
-      
+        with:
+          submodules: true  # Need Skia headers
+
+      - name: Get Emscripten version from Skia
+        id: emsdk-version
+        run: |
+          VERSION=$(grep "EMSDK_VERSION = " third_party/skia/bin/activate-emsdk | sed "s/.*'\(.*\)'/\1/")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Using Emscripten version: $VERSION"
+
+      - name: Setup Emscripten
+        uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: ${{ steps.emsdk-version.outputs.version }}
+
+      - name: Build WASM
+        run: ./scripts/build_wasm.sh
+
       - name: Setup Pages
         uses: actions/configure-pages@v4
-      
+
       - name: Prepare demo files
         run: |
           mkdir -p _site
@@ -28,10 +45,10 @@ jobs:
           cp -r assets/fonts/* _site/fonts/
           # Fix font paths
           sed -i 's|../../assets/fonts/|./fonts/|g' _site/main.js
-      
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
-      
+
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
